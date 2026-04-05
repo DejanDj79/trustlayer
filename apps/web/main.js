@@ -1,23 +1,51 @@
 const API_BASE = "http://127.0.0.1:8787";
+const REQUEST_TIMEOUT_MS = 30000;
 
 const form = document.getElementById("score-form");
 const mintInput = document.getElementById("mint");
+const submitButton = form.querySelector('button[type="submit"]');
+const errorEl = document.getElementById("error");
+const emptyState = document.getElementById("empty-state");
+const loadingState = document.getElementById("loading-state");
+
 const resultSection = document.getElementById("result");
+const scoreRing = document.getElementById("score-ring");
+const scoreValue = document.getElementById("score-value");
 const statusLine = document.getElementById("status-line");
 const sourceLine = document.getElementById("source-line");
 const confidenceLine = document.getElementById("confidence-line");
 const holderLine = document.getElementById("holder-line");
+
+const metricLiquidity = document.getElementById("metric-liquidity");
+const metricVolume = document.getElementById("metric-volume");
+const metricTx = document.getElementById("metric-tx");
+const metricPairs = document.getElementById("metric-pairs");
+
+const reasonsList = document.getElementById("reasons");
 const rpcHealthCard = document.getElementById("rpc-health-card");
 const rpcHealthList = document.getElementById("rpc-health-list");
-const reasonsList = document.getElementById("reasons");
+const warningsCard = document.getElementById("warnings-card");
 const warningsList = document.getElementById("warnings");
-const errorEl = document.getElementById("error");
-const submitButton = form.querySelector('button[type="submit"]');
-const REQUEST_TIMEOUT_MS = 30000;
+
+function hideResult() {
+  resultSection.classList.add("hidden");
+  resultSection.classList.remove("is-ready");
+}
+
+function showEmptyState() {
+  emptyState.classList.remove("hidden");
+}
+
+function hideEmptyState() {
+  emptyState.classList.add("hidden");
+}
 
 function showError(message) {
   errorEl.textContent = message;
   errorEl.classList.remove("hidden");
+  hideResult();
+  loadingState.classList.add("hidden");
+  showEmptyState();
 }
 
 function hideError() {
@@ -27,7 +55,26 @@ function hideError() {
 
 function setLoading(isLoading) {
   submitButton.disabled = isLoading;
-  submitButton.textContent = isLoading ? "Checking..." : "Check Score";
+  submitButton.textContent = isLoading ? "Analyzing..." : "Analyze Token";
+  loadingState.classList.toggle("hidden", !isLoading);
+}
+
+function formatUsd(value) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0
+  }).format(value);
+}
+
+function formatNumber(value) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+  return new Intl.NumberFormat("en-US").format(value);
 }
 
 function formatHolderSource(source) {
@@ -63,6 +110,53 @@ function formatRpcProviders(providers) {
   return visible.join(" | ");
 }
 
+function setStatusVisual(status) {
+  const resolved = String(status || "yellow").toLowerCase();
+  statusLine.className = `status-pill ${resolved}`;
+  scoreRing.classList.remove("green", "yellow", "red");
+  if (resolved === "green" || resolved === "yellow" || resolved === "red") {
+    scoreRing.classList.add(resolved);
+  } else {
+    scoreRing.classList.add("yellow");
+  }
+}
+
+function renderReasons(reasons) {
+  reasonsList.innerHTML = "";
+  for (const reason of reasons || []) {
+    const li = document.createElement("li");
+    li.className = "reason-item";
+    const separator = reason.indexOf(":");
+    if (separator > 0) {
+      const title = document.createElement("span");
+      title.className = "reason-title";
+      title.textContent = reason.slice(0, separator + 1);
+      const value = document.createElement("span");
+      value.className = "reason-value";
+      value.textContent = reason.slice(separator + 1).trim();
+      li.appendChild(title);
+      li.appendChild(value);
+    } else {
+      li.textContent = reason;
+    }
+    reasonsList.appendChild(li);
+  }
+}
+
+function renderWarnings(warnings) {
+  warningsList.innerHTML = "";
+  warningsCard.classList.add("hidden");
+  if (!Array.isArray(warnings) || warnings.length === 0) {
+    return;
+  }
+  for (const warning of warnings) {
+    const li = document.createElement("li");
+    li.textContent = warning;
+    warningsList.appendChild(li);
+  }
+  warningsCard.classList.remove("hidden");
+}
+
 function renderRpcHealth(rpcHealth) {
   rpcHealthList.innerHTML = "";
   rpcHealthCard.classList.add("hidden");
@@ -75,26 +169,58 @@ function renderRpcHealth(rpcHealth) {
     { key: "tokenAccountsFallback", label: "Token accounts fallback" },
     { key: "tokenSupply", label: "Token supply RPC" }
   ];
-  let hasRows = false;
 
-  for (const checkDef of checks) {
-    const check = rpcHealth?.[checkDef.key];
+  let hasRows = false;
+  for (const definition of checks) {
+    const check = rpcHealth?.[definition.key];
     if (!check || typeof check !== "object") {
       continue;
     }
     hasRows = true;
-    const status = String(check.status || "unknown").toUpperCase();
-    const note = check.note ? ` | ${check.note}` : "";
-    const pages =
-      Number.isFinite(check?.pagesFetched) && check.pagesFetched > 0
-        ? ` | pages: ${check.pagesFetched}`
-        : "";
-    const providers = formatRpcProviders(check.providers);
-    const providersText = providers ? ` | ${providers}` : "";
+
+    const statusLower = String(check.status || "unknown").toLowerCase();
+    const statusUpper = statusLower.toUpperCase();
 
     const li = document.createElement("li");
-    li.className = `rpc-status-${String(check.status || "unknown").toLowerCase()}`;
-    li.textContent = `${checkDef.label}: ${status}${pages}${note}${providersText}`;
+    li.className = "rpc-item";
+
+    const head = document.createElement("div");
+    head.className = "rpc-head";
+
+    const name = document.createElement("span");
+    name.className = "rpc-name";
+    name.textContent = definition.label;
+
+    const badge = document.createElement("span");
+    badge.className = `rpc-badge ${statusLower}`;
+    badge.textContent = statusUpper;
+
+    head.appendChild(name);
+    head.appendChild(badge);
+    li.appendChild(head);
+
+    const details = [];
+    if (Number.isFinite(check.pagesFetched) && check.pagesFetched > 0) {
+      details.push(`pages: ${check.pagesFetched}`);
+    }
+    if (check.note) {
+      details.push(check.note);
+    }
+    if (details.length > 0) {
+      const note = document.createElement("p");
+      note.className = "rpc-note";
+      note.textContent = details.join(" | ");
+      li.appendChild(note);
+    }
+
+    const providers = formatRpcProviders(check.providers);
+    if (providers) {
+      const providerLine = document.createElement("p");
+      providerLine.className = "rpc-provider";
+      providerLine.textContent = providers;
+      li.appendChild(providerLine);
+    }
+
     rpcHealthList.appendChild(li);
   }
 
@@ -104,61 +230,65 @@ function renderRpcHealth(rpcHealth) {
 }
 
 function showResult(data) {
-  statusLine.textContent = `Score: ${data.score} (${data.status.toUpperCase()})`;
-  statusLine.className = `status ${data.status}`;
-  sourceLine.textContent = `Data source: ${data.dataSource || "unknown"}`;
-  confidenceLine.textContent = `Confidence: ${(data.scoreConfidence || "unknown").toUpperCase()}`;
+  hideError();
+  hideEmptyState();
+  loadingState.classList.add("hidden");
 
-  const holderSource = data?.signalDetails?.holderConcentrationSource;
-  const holderCoveragePct = data?.signalDetails?.holderSampleCoveragePct;
-  const holderPagesFetched = data?.signalDetails?.holderPagesFetched;
+  const score = Number(data?.score || 0);
+  const clampedScore = Math.max(0, Math.min(100, score));
+
+  scoreValue.textContent = String(score);
+  scoreRing.style.setProperty("--score-angle", `${(clampedScore * 3.6).toFixed(2)}deg`);
+  setStatusVisual(data?.status);
+
+  statusLine.textContent = String(data?.status || "unknown").toUpperCase();
+  confidenceLine.textContent = `Confidence: ${(data?.scoreConfidence || "unknown").toUpperCase()}`;
+  sourceLine.textContent = `Data source: ${data?.dataSource || "unknown"}`;
+
+  const details = data?.signalDetails || {};
+  const holderSource = details.holderConcentrationSource;
+  const holderCoveragePct = details.holderSampleCoveragePct;
+  const holderPagesFetched = details.holderPagesFetched;
   if (holderSource) {
-    const holderParts = [`Holder source: ${formatHolderSource(holderSource)}`];
+    const parts = [`Holder source: ${formatHolderSource(holderSource)}`];
     if (Number.isFinite(holderCoveragePct)) {
-      holderParts.push(`coverage ${holderCoveragePct.toFixed(1)}%`);
+      parts.push(`coverage ${holderCoveragePct.toFixed(1)}%`);
     }
     if (Number.isFinite(holderPagesFetched)) {
-      holderParts.push(`${holderPagesFetched} page(s)`);
+      parts.push(`${holderPagesFetched} page(s)`);
     }
-    holderLine.textContent = holderParts.join(" | ");
+    holderLine.textContent = parts.join(" | ");
     holderLine.classList.remove("hidden");
   } else {
     holderLine.textContent = "";
     holderLine.classList.add("hidden");
   }
+
+  metricLiquidity.textContent = formatUsd(Number(details.liquidityUsd));
+  metricVolume.textContent = formatUsd(Number(details.volume24hUsd));
+  metricTx.textContent = formatNumber(Number(details.tx24h));
+  metricPairs.textContent = formatNumber(Number(details.marketPairCount));
+
+  renderReasons(data?.reasons);
   renderRpcHealth(data?.rpcHealth);
-
-  reasonsList.innerHTML = "";
-  warningsList.innerHTML = "";
-  warningsList.classList.add("hidden");
-
-  for (const reason of data.reasons) {
-    const li = document.createElement("li");
-    li.textContent = reason;
-    reasonsList.appendChild(li);
-  }
-
-  if (Array.isArray(data.warnings) && data.warnings.length > 0) {
-    for (const warning of data.warnings) {
-      const li = document.createElement("li");
-      li.textContent = warning;
-      warningsList.appendChild(li);
-    }
-    warningsList.classList.remove("hidden");
-  }
+  renderWarnings(data?.warnings);
 
   resultSection.classList.remove("hidden");
+  resultSection.classList.remove("is-ready");
+  void resultSection.offsetWidth;
+  resultSection.classList.add("is-ready");
 }
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideError();
-  resultSection.classList.add("hidden");
+  hideResult();
+  hideEmptyState();
   setLoading(true);
 
   const mint = (mintInput.value || "").trim();
   if (!mint) {
-    showError("Please enter a mint address.");
+    showError("Paste a valid mint address before starting analysis.");
     setLoading(false);
     return;
   }
@@ -166,14 +296,26 @@ form.addEventListener("submit", async (event) => {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
     try {
       const response = await fetch(`${API_BASE}/v1/score/${encodeURIComponent(mint)}`, {
         signal: controller.signal
       });
-      const data = await response.json();
+      let data = null;
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
 
       if (!response.ok) {
-        showError(data.error || "Request failed");
+        const detail = data?.error ? ` ${data.error}` : "";
+        showError(`API request failed (${response.status}).${detail}`);
+        return;
+      }
+
+      if (!data || typeof data !== "object") {
+        showError("API returned an invalid response. Check backend logs and try again.");
         return;
       }
 
@@ -183,10 +325,13 @@ form.addEventListener("submit", async (event) => {
     }
   } catch (error) {
     if (error?.name === "AbortError") {
-      showError("Request timed out. RPC providers are likely slow/rate-limited.");
+      const timeoutSeconds = Math.round(REQUEST_TIMEOUT_MS / 1000);
+      showError(
+        `Request timed out after ${timeoutSeconds}s. RPC providers are likely slow or rate-limited. Retry, or switch primary RPC in .env.`
+      );
       return;
     }
-    showError("Could not reach API. Is API running on 127.0.0.1:8787?");
+    showError("Cannot reach API on 127.0.0.1:8787. Start backend with ./scripts/dev_all.sh (or npm run dev:api) and retry.");
   } finally {
     setLoading(false);
   }

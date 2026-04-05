@@ -3,41 +3,116 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TrustLayer</title>
+    <title>TrustLayer | Solana Risk Intelligence</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>TrustLayer</h1>
-      <p class="subtitle">Solana Token Risk Check</p>
+    <div class="bg-orb orb-a" aria-hidden="true"></div>
+    <div class="bg-orb orb-b" aria-hidden="true"></div>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Frontier Build · Solana Risk Intelligence</p>
+        <h1>TrustLayer</h1>
+        <p class="subtitle">
+          Fast token risk visibility with confidence scoring, transparent signal breakdown, and RPC health
+          diagnostics.
+        </p>
+      </header>
 
-      <form id="score-form" class="card">
-        <label for="mint">Mint address</label>
-        <input
-          id="mint"
-          name="mint"
-          type="text"
-          placeholder="So11111111111111111111111111111111111111112"
-          required
-        />
-        <button type="submit">Check Score</button>
-      </form>
+      <section class="panel search-panel">
+        <form id="score-form">
+          <label for="mint">Mint Address</label>
+          <div class="input-row">
+            <input
+              id="mint"
+              name="mint"
+              type="text"
+              placeholder="So11111111111111111111111111111111111111112"
+              required
+            />
+            <button type="submit">Analyze Token</button>
+          </div>
+          <p class="hint">Paste any SPL mint to generate an instant risk report.</p>
+        </form>
+      </section>
 
-      <section id="result" class="card hidden" aria-live="polite">
-        <h2>Result</h2>
-        <p id="status-line"></p>
-        <p id="source-line" class="muted"></p>
-        <p id="confidence-line" class="muted"></p>
-        <p id="holder-line" class="muted hidden"></p>
-        <div id="rpc-health-card" class="rpc-health hidden">
-          <p class="rpc-health-title">RPC Health</p>
-          <ul id="rpc-health-list"></ul>
+      <section id="empty-state" class="panel empty-state">
+        <h2>Ready to Analyze</h2>
+        <p>
+          Enter an SPL mint address to generate a risk report with score confidence, signal breakdown, and RPC health
+          diagnostics.
+        </p>
+        <div class="empty-tags">
+          <span>Authority checks</span>
+          <span>Holder concentration</span>
+          <span>Liquidity + activity</span>
+          <span>Confidence + warnings</span>
         </div>
-        <ul id="reasons"></ul>
-        <ul id="warnings" class="warnings hidden"></ul>
+      </section>
+
+      <section id="loading-state" class="panel loading-state hidden" aria-live="polite">
+        <p class="loading-chip">Live Analysis In Progress</p>
+        <p class="loading-copy">Querying RPC providers and market data. This may take a few seconds.</p>
+        <div class="loading-grid" aria-hidden="true">
+          <div class="skeleton skeleton-score"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line short"></div>
+          <div class="skeleton skeleton-line"></div>
+          <div class="skeleton skeleton-line short"></div>
+        </div>
       </section>
 
       <p id="error" class="error hidden"></p>
+
+      <section id="result" class="result hidden" aria-live="polite">
+        <article class="panel score-panel">
+          <div class="score-layout">
+            <div id="score-ring" class="score-ring">
+              <span id="score-value" class="score-value">--</span>
+              <span class="score-caption">Risk Score</span>
+            </div>
+            <div class="score-meta">
+              <p id="status-line" class="status-pill">--</p>
+              <p id="confidence-line" class="muted"></p>
+              <p id="source-line" class="muted"></p>
+              <p id="holder-line" class="muted hidden"></p>
+            </div>
+          </div>
+          <div class="metric-grid">
+            <div class="metric-item">
+              <span class="metric-label">Liquidity</span>
+              <span id="metric-liquidity" class="metric-value">n/a</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">24h Volume</span>
+              <span id="metric-volume" class="metric-value">n/a</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">24h Tx</span>
+              <span id="metric-tx" class="metric-value">n/a</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Pools</span>
+              <span id="metric-pairs" class="metric-value">n/a</span>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <h2>Signal Breakdown</h2>
+          <ul id="reasons" class="stack-list"></ul>
+        </article>
+
+        <article id="rpc-health-card" class="panel hidden">
+          <h2>RPC Health</h2>
+          <ul id="rpc-health-list" class="stack-list rpc-list"></ul>
+        </article>
+
+        <article id="warnings-card" class="panel warning-panel hidden">
+          <h2>Warnings</h2>
+          <ul id="warnings" class="stack-list"></ul>
+        </article>
+      </section>
     </main>
 
     <script type="module" src="./main.js"></script>
