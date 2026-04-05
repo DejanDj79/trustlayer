@@ -7,7 +7,9 @@ CURRENT STATUS UPDATE (as of 05 Apr 2026)
 - [DONE] Scoring v1 ukljucuje 5 signala (holder, liquidity, authority, metadata, activity).
 - [DONE] Multi-RPC fallback, timeout/retry i graceful degradation implementirani.
 - [DONE] `rpcHealth` dijagnostika dodata u API i prikazana u UI.
-- [DONE] Osnovna dokumentacija azurirana (README, .env.example, API contract).
+- [DONE] Request-level in-memory cache + in-flight dedupe po mint-u dodati na `/v1/score/:mint`.
+- [DONE] Judge polish UI zavrsen (empty/loading/error state + metrics + diagnostics layout).
+- [DONE] Operativna dokumentacija prosirena (`README`, `.env.example`, API contract, smoke script).
 - [IN PROGRESS] Tuning scoring formule na "golden token" setu.
 - [TODO] History endpoint/UI (`/v1/history/:mint`) i timeline chart.
 - [TODO] Produkcioni deploy + javni demo URL + submission video.

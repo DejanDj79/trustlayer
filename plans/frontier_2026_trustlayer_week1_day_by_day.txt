@@ -6,7 +6,10 @@ STATUS SNAPSHOT (as of 05 Apr 2026)
 - [DONE] API foundation isporucen (`/health`, `/v1/score/:mint`).
 - [DONE] Solana integracije + scoring v1 + fallback mode rade.
 - [DONE] Frontend prikazuje score/status/reasons/confidence.
-- [IN PROGRESS] Hardening (rate-limit/security/test coverage) i judge polish.
+- [DONE] Judge polish isporucen (responsive UI + empty/loading/error states).
+- [DONE] Request cache + in-flight dedupe dodati na score endpoint.
+- [DONE] Smoke check skripta i demo runbook dodati u dokumentaciju.
+- [IN PROGRESS] Hardening (rate-limit/security/test coverage).
 - [TODO] Formalni "week review" artefakti (snimljen weekly update + final checklist pass).
 
 Goal of week 1:

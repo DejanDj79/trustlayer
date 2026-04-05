@@ -11,7 +11,19 @@ Response 200:
 {
   "status": "ok",
   "service": "trustlayer-api",
-  "timestamp": "2026-04-05T00:00:00.000Z"
+  "timestamp": "2026-04-05T00:00:00.000Z",
+  "uptimeSec": 129,
+  "rpcProviders": [
+    "mainnet.helius-rpc.com",
+    "solana-mainnet.g.alchemy.com/v2/*"
+  ],
+  "cache": {
+    "enabled": true,
+    "ttlMs": 45000,
+    "maxEntries": 200,
+    "entries": 3,
+    "inFlightBuilds": 0
+  }
 }
 
 --------------------------------------------------
@@ -69,6 +81,11 @@ Response 200:
     }
   },
   "warnings": [],
+  "cache": {
+    "hit": false,
+    "ageMs": 0,
+    "ttlMs": 45000
+  },
   "generatedAt": "2026-04-05T00:00:00.000Z"
 }
 
@@ -129,6 +146,11 @@ Response 200 (heuristic market fallback, when DexScreener fails):
     "Using heuristic market signals: DexScreener HTTP 429",
     "Score adjusted -15 because holder concentration is heuristic."
   ],
+  "cache": {
+    "hit": false,
+    "ageMs": 0,
+    "ttlMs": 45000
+  },
   "generatedAt": "2026-04-05T00:00:00.000Z"
 }
 
@@ -164,6 +186,11 @@ Response 200 (full fallback mode, when Solana RPC fails):
   "warnings": [
     "Using fallback signals because Solana RPC data failed: RPC HTTP 429"
   ],
+  "cache": {
+    "hit": false,
+    "ageMs": 0,
+    "ttlMs": 45000
+  },
   "generatedAt": "2026-04-05T00:00:00.000Z"
 }
 
@@ -197,3 +224,11 @@ Possible `rpcHealth.*.status` values:
 Status policy:
 - `green` requires `scoreConfidence = "high"`.
 - For `scoreConfidence = "medium"` or `low`, max status is `yellow`.
+
+Cache policy:
+- Score results are cached in-memory by mint.
+- `cache.hit = true` means response came from cache.
+- `cache.ageMs` is response age in milliseconds.
+- Configure via:
+  - `SCORE_CACHE_TTL_MS` (set `0` to disable)
+  - `SCORE_CACHE_MAX_ENTRIES`

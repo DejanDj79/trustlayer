@@ -23,6 +23,9 @@ const RPC_CALL_BUDGET_MS = Number(process.env.RPC_CALL_BUDGET_MS || 9000);
 const RPC_HOLDER_TIMEOUT_MS = Number(process.env.RPC_HOLDER_TIMEOUT_MS || 12000);
 const RPC_HOLDER_MAX_RETRIES_PER_URL = Number(process.env.RPC_HOLDER_MAX_RETRIES_PER_URL || 0);
 const RPC_HOLDER_BUDGET_MS = Number(process.env.RPC_HOLDER_BUDGET_MS || 20000);
+const SCORE_CACHE_TTL_MS = Number(process.env.SCORE_CACHE_TTL_MS || 45000);
+const SCORE_CACHE_MAX_ENTRIES = Number(process.env.SCORE_CACHE_MAX_ENTRIES || 200);
+const SCORE_CACHE_ENABLED = SCORE_CACHE_TTL_MS > 0 && SCORE_CACHE_MAX_ENTRIES > 0;
 const HOLDER_TOKEN_ACCOUNTS_FALLBACK_LIMIT = Number(
   process.env.HOLDER_TOKEN_ACCOUNTS_FALLBACK_LIMIT || 1000
 );
@@ -40,6 +43,8 @@ const HOLDER_HEURISTIC_MAX_SCORE = Number(process.env.HOLDER_HEURISTIC_MAX_SCORE
 const DEXSCREENER_API_BASE =
   process.env.DEXSCREENER_API_BASE || "https://api.dexscreener.com/latest/dex/tokens";
 const MARKET_TIMEOUT_MS = Number(process.env.MARKET_TIMEOUT_MS || 5000);
+const scoreCache = new Map();
+const scoreBuildInFlight = new Map();
 
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -124,6 +129,51 @@ function sanitizeRpcEndpoint(endpoint) {
   } catch {
     return "rpc-endpoint";
   }
+}
+
+function getCacheEntry(mint) {
+  if (!SCORE_CACHE_ENABLED) {
+    return null;
+  }
+  const entry = scoreCache.get(mint);
+  if (!entry) {
+    return null;
+  }
+  const ageMs = Date.now() - entry.cachedAt;
+  if (ageMs >= SCORE_CACHE_TTL_MS) {
+    scoreCache.delete(mint);
+    return null;
+  }
+  return { entry, ageMs };
+}
+
+function setCacheEntry(mint, assessment) {
+  if (!SCORE_CACHE_ENABLED) {
+    return;
+  }
+
+  scoreCache.set(mint, {
+    assessment,
+    cachedAt: Date.now()
+  });
+
+  if (scoreCache.size <= SCORE_CACHE_MAX_ENTRIES) {
+    return;
+  }
+
+  for (const key of scoreCache.keys()) {
+    scoreCache.delete(key);
+    if (scoreCache.size <= SCORE_CACHE_MAX_ENTRIES) {
+      break;
+    }
+  }
+}
+
+function withCacheMeta(assessment, cacheMeta) {
+  return {
+    ...assessment,
+    cache: cacheMeta
+  };
 }
 
 function sleep(ms) {
@@ -1143,6 +1193,37 @@ async function buildRiskAssessment(mint) {
   }
 }
 
+async function buildRiskAssessmentCached(mint) {
+  const cached = getCacheEntry(mint);
+  if (cached) {
+    return withCacheMeta(cached.entry.assessment, {
+      hit: true,
+      ageMs: cached.ageMs,
+      ttlMs: SCORE_CACHE_TTL_MS
+    });
+  }
+
+  let inFlight = scoreBuildInFlight.get(mint);
+  if (!inFlight) {
+    inFlight = buildRiskAssessment(mint)
+      .then((assessment) => {
+        setCacheEntry(mint, assessment);
+        return assessment;
+      })
+      .finally(() => {
+        scoreBuildInFlight.delete(mint);
+      });
+    scoreBuildInFlight.set(mint, inFlight);
+  }
+
+  const assessment = await inFlight;
+  return withCacheMeta(assessment, {
+    hit: false,
+    ageMs: 0,
+    ttlMs: SCORE_CACHE_TTL_MS
+  });
+}
+
 const server = http.createServer((req, res) => {
   if (!req.url || !req.method) {
     sendJson(res, 400, { error: "Bad request" });
@@ -1161,7 +1242,16 @@ const server = http.createServer((req, res) => {
     sendJson(res, 200, {
       status: "ok",
       service: "trustlayer-api",
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      uptimeSec: Math.round(process.uptime()),
+      rpcProviders: SOLANA_RPC_URLS.map((endpoint) => sanitizeRpcEndpoint(endpoint)),
+      cache: {
+        enabled: SCORE_CACHE_ENABLED,
+        ttlMs: SCORE_CACHE_TTL_MS,
+        maxEntries: SCORE_CACHE_MAX_ENTRIES,
+        entries: scoreCache.size,
+        inFlightBuilds: scoreBuildInFlight.size
+      }
     });
     return;
   }
@@ -1175,7 +1265,7 @@ const server = http.createServer((req, res) => {
       });
       return;
     }
-    buildRiskAssessment(mint)
+    buildRiskAssessmentCached(mint)
       .then((assessment) => {
         sendJson(res, 200, assessment);
       })
