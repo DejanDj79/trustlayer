@@ -1,0 +1,266 @@
+TRUSTLAYER PLAN
+Colosseum Frontier Hackathon 2026 (06 Apr 2026 - 11 May 2026)
+
+CURRENT STATUS UPDATE (as of 05 Apr 2026)
+- [DONE] Vertical slice postoji: mint input -> API score -> UI rezultat.
+- [DONE] Endpoint-i rade: GET /health i GET /v1/score/:mint.
+- [DONE] Scoring v1 ukljucuje 5 signala (holder, liquidity, authority, metadata, activity).
+- [DONE] Multi-RPC fallback, timeout/retry i graceful degradation implementirani.
+- [DONE] `rpcHealth` dijagnostika dodata u API i prikazana u UI.
+- [DONE] Osnovna dokumentacija azurirana (README, .env.example, API contract).
+- [IN PROGRESS] Tuning scoring formule na "golden token" setu.
+- [TODO] History endpoint/UI (`/v1/history/:mint`) i timeline chart.
+- [TODO] Produkcioni deploy + javni demo URL + submission video.
+
+Project one-liner
+TrustLayer je web aplikacija + API za procenu rizika Solana tokena/projekata
+(green/yellow/red + objasnjenje zasto).
+
+==================================================
+1) CILJ I STRATEGIJA
+==================================================
+
+Primarni cilj:
+- Uci u nagradjenu grupu i dobiti interview za Colosseum Accelerator.
+
+Sekundarni cilj:
+- Imati "investable" MVP (radi live, ima korisnicki problem, ima biznis pravac).
+
+Strategija pobede:
+- Jedan use-case uradjen vrhunski (token risk score), bez sirenja na 10 feature-a.
+- Strong demo + cist GitHub + jasan business narativ.
+- Fokus na kvalitet i pouzdanost, ne na broj ekrana.
+
+==================================================
+2) STA TACNO GRADIMO (MVP SCOPE)
+==================================================
+
+MVP funkcije (obavezno):
+1. Search tokena po mint adresi.
+2. Risk score 0-100 + status:
+   - Green (nizi rizik)
+   - Yellow (srednji rizik)
+   - Red (visi rizik)
+3. Objasnjenje score-a kroz 5 glavnih signala:
+   - Holder concentration (koliko supply drzi top wallet-i)
+   - Liquidity signal (da li postoji i kolika je likvidnost)
+   - Mint/freeze authority signal
+   - Token metadata verifikacija
+   - Basic activity signal (trades/holders trend)
+4. History panel (promena score-a kroz vreme).
+5. Public API endpoint:
+   - GET /v1/score/:mint
+
+Post-MVP / stretch (samo ako ostane vremena):
+- Wallet extension warning widget.
+- Alerting (Telegram/Discord webhook kada score padne).
+- Community review layer (user flag + evidence link).
+
+==================================================
+3) PREPORUCENI TECH STACK
+==================================================
+
+Frontend:
+- Next.js 14+ (TypeScript)
+- Tailwind CSS
+- Solana Wallet Adapter (za wallet connect ako zatreba)
+
+Backend/API:
+- Node.js 20 + Fastify ili NestJS
+- TypeScript
+- Zod za validaciju inputa
+
+Data + storage:
+- PostgreSQL (Supabase/Neon)
+- Redis (cache score rezultata)
+
+Solana/data integracije:
+- @solana/web3.js
+- Helius RPC / Enhanced API (ili drugi kvalitetan Solana provider)
+- Birdeye/Jupiter podaci za market signale (ako API uslovi dozvoljavaju)
+
+DevOps:
+- Monorepo (pnpm workspaces ili turbo)
+- GitHub Actions (lint + typecheck + test)
+- Deploy:
+  - Frontend: Vercel
+  - API + worker: Railway/Fly/Render
+
+Observability:
+- Sentry (error tracking)
+- Simple structured logs
+
+==================================================
+4) ARHITEKTURA (MINIMALNA ALI OZBILJNA)
+==================================================
+
+Komponente:
+1. Web app (UI)
+2. API servis
+3. Scoring engine (pravila + ponderi)
+4. Background worker (periodicno osvezavanje score-ova)
+5. PostgreSQL + Redis
+
+Flow:
+- User unese mint -> API validira -> proveri cache -> ako nema:
+  - povuce onchain/offchain signale
+  - izracuna score
+  - snimi rezultat
+  - vrati UI-ju score + reasons
+
+==================================================
+5) FAZE I ROKOVI (OPERATIVNI PLAN)
+==================================================
+
+FAZA 0 (05 Apr): Setup i priprema
+- Registracija na Arena + projekat + GitHub repo.
+- Definisati ime, domen, kratak pitch.
+- Postaviti CI i coding standards.
+
+FAZA 1 (06-09 Apr): Product spec + data model
+- Zakljucati scope (MVP only).
+- Definisati scoring formulu v1.
+- Definisati DB shemu i API contract.
+
+FAZA 2 (10-18 Apr): Backend + scoring engine
+- Implementacija /v1/score/:mint.
+- Integracije ka Solana podacima.
+- Izracun 5 signalnih metrika.
+- Cache + osnovna zastita od abuse.
+
+FAZA 3 (19-26 Apr): Frontend + UX
+- Search page + result page.
+- Score card + reason breakdown + history graph.
+- Loading/error states.
+
+FAZA 4 (27 Apr-03 May): Stabilizacija + validacija
+- Testovi za scoring logiku.
+- E2E test glavnog user flow-a.
+- Perf optimizacija i bugfix.
+
+FAZA 5 (04-08 May): Submission assets
+- Snimanje demo videa (<3 min).
+- Finalni README (setup, arhitektura, demo).
+- One-pager poslovne strategije.
+
+FAZA 6 (09-11 May): Final freeze i predaja
+- Feature freeze.
+- Samo bugfix i polish.
+- Final submission check + slanje.
+
+==================================================
+6) SUBMISSION CHECKLIST (OBAVEZNO)
+==================================================
+
+Kod i repo:
+- Public GitHub repo.
+- Jasan README:
+  - sta projekat radi
+  - kako se pokrece lokalno
+  - arhitektura
+  - API endpointi
+- .env.example bez tajni.
+- Lint/typecheck prolaze.
+
+Proizvod:
+- Live demo URL.
+- Bar jedan pouzdan end-to-end flow koji radi bez intervencije.
+
+Prezentacija:
+- Demo video do 3 min:
+  - Problem
+  - Resenje
+  - Live walkthrough
+  - Zasto bas Solana
+  - Biznis potencijal
+
+Operativno:
+- Hackathon submission forma popunjena kompletno.
+- Svi clanovi tima registrovani (ako bude tim).
+- Pracenje pravila i rokova sa Arena/Official Rules stranice.
+
+==================================================
+7) QUALITY BAR (GO/NO-GO KRITERIJUMI)
+==================================================
+
+GO samo ako:
+1. API vraca score i razloge za najmanje 20 test tokena stabilno.
+2. UI je upotrebljiv na desktop + mobile.
+3. Demo se moze reprodukovati bez "rucnog patch-a".
+4. README je dovoljan da treca osoba pokrene projekat.
+5. Video je jasan i ispod 3 min.
+
+Ako bilo koja tacka nije ispunjena:
+- Stop novi feature.
+- Popraviti kriticne rupe pre predaje.
+
+==================================================
+8) RIZICI I MITIGACIJA
+==================================================
+
+Rizik: Prevelik scope.
+Mitigacija: Zakljucati MVP do 09 Apr.
+
+Rizik: Nepouzdani eksterni API podaci.
+Mitigacija: fallback provideri + cache + graceful degradation.
+
+Rizik: Demo fail na dan predaje.
+Mitigacija: backup snimak live demoa + preloaded test tokeni.
+
+Rizik: Slab pitch iako proizvod radi.
+Mitigacija: 3 probe pitch-a + skripta za demo.
+
+==================================================
+9) BUSINESS NARATIV ZA ZIRI/INVESTITORE
+==================================================
+
+Problem:
+- Retail korisnici i novi traderi ulaze u rizicne tokene bez jasnog signala.
+
+Resenje:
+- TrustLayer daje "instant risk clarity" pre kupovine.
+
+Kupci (initial ICP):
+- Wallet aplikacije
+- DEX agregatori
+- Copy-trading i alert alati
+- Retail web korisnici
+
+Monetizacija:
+- Free: osnovni score
+- Pro API: veci rate limit + batch endpoint + webhook alerti
+- B2B dashboard za integratore
+
+==================================================
+10) DAILY OPERATING RHYTHM (PRAKTICNO)
+==================================================
+
+Svaki dan:
+1. 15 min plan (top 3 taska)
+2. 3-5h focused build
+3. 30 min test + cleanup
+4. 15 min status update (za sebe + eventualno hackathon update)
+
+Svake nedelje:
+- Nedelja 1-4: gradnja
+- Nedelja 5: polish + submission package
+
+==================================================
+11) MINIMALNI KICKOFF TASKOVI (ODMAH)
+==================================================
+
+Dan 1:
+- Kreirati repo i monorepo skeleton.
+- Postaviti frontend i backend scaffold.
+- Definisati scoring schema v1 u dokumentu.
+
+Dan 2:
+- Integrisati Solana data provider.
+- Implementirati prvi endpoint i testirati 5 tokena.
+
+Dan 3:
+- Prvi funkcionalni UI i end-to-end flow.
+
+==================================================
+KRAJ
+==================================================

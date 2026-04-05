@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TrustLayer</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>TrustLayer</h1>
+      <p class="subtitle">Solana Token Risk Check</p>
+
+      <form id="score-form" class="card">
+        <label for="mint">Mint address</label>
+        <input
+          id="mint"
+          name="mint"
+          type="text"
+          placeholder="So11111111111111111111111111111111111111112"
+          required
+        />
+        <button type="submit">Check Score</button>
+      </form>
+
+      <section id="result" class="card hidden" aria-live="polite">
+        <h2>Result</h2>
+        <p id="status-line"></p>
+        <p id="source-line" class="muted"></p>
+        <p id="confidence-line" class="muted"></p>
+        <p id="holder-line" class="muted hidden"></p>
+        <div id="rpc-health-card" class="rpc-health hidden">
+          <p class="rpc-health-title">RPC Health</p>
+          <ul id="rpc-health-list"></ul>
+        </div>
+        <ul id="reasons"></ul>
+        <ul id="warnings" class="warnings hidden"></ul>
+      </section>
+
+      <p id="error" class="error hidden"></p>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

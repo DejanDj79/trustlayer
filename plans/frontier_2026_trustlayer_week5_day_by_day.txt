@@ -1,0 +1,174 @@
+TRUSTLAYER - WEEK 5 DAY-BY-DAY PLAN
+Period: 04 May 2026 - 11 May 2026
+
+STATUS SNAPSHOT (as of 05 Apr 2026)
+- [TODO] Final feature freeze i submission-only rezim.
+- [TODO] Demo video recording i pitch dry-run ciklus.
+- [TODO] Final submission forma + link QA + backup demo scenario.
+- [TODO] Post-submission follow-up i accelerator interview prep.
+
+Goal of week 5:
+- Submission package vrhunskog kvaliteta + zero-drama predaja.
+
+--------------------------------------------------
+DAY 29 (04 May) - FEATURE FREEZE
+--------------------------------------------------
+
+Objectives:
+- Zaustaviti scope creep i zakljucati finalni build.
+
+Tasks:
+1. Proglasiti feature freeze.
+2. Otvoreni taskovi:
+   - samo bugfix
+   - copy/content
+   - demo prep
+3. Zakljuciti backlog i jasno obeleziti post-hackathon ideje.
+4. Potvrditi finalnu verziju API contract-a.
+
+Definition of done:
+- Nema novih feature taskova.
+
+--------------------------------------------------
+DAY 30 (05 May) - README + DOCS FINAL
+--------------------------------------------------
+
+Objectives:
+- Repo da bude samodovoljan za sudiju i investitora.
+
+Tasks:
+1. Final README:
+   - problem
+   - solution
+   - architecture
+   - run locally
+   - API reference
+2. Dodati `SCORING_METHOD.md`.
+3. Dodati `KNOWN_LIMITATIONS.md`.
+4. Proveriti da nema tajni u kodu i commit istoriji.
+
+Definition of done:
+- Treca osoba moze da razume projekat bez dodatnog objasnjenja.
+
+--------------------------------------------------
+DAY 31 (06 May) - DEMO SCRIPT + STORY
+--------------------------------------------------
+
+Objectives:
+- Napraviti najjaci 3-min narativ.
+
+Tasks:
+1. Napisati pitch skriptu:
+   - Hook (problem)
+   - Product demo
+   - Why now/why Solana
+   - Business model
+2. Definisati tacne demo klikove i mint primere.
+3. Pripremiti backup plan ako live internet zakaze.
+4. Uvezbati 3x sa tajmerom.
+
+Definition of done:
+- Stabilan i jasan demo script ispod 3 min.
+
+--------------------------------------------------
+DAY 32 (07 May) - VIDEO RECORDING
+--------------------------------------------------
+
+Objectives:
+- Snimiti final demo video za submission.
+
+Tasks:
+1. Snimiti 2-3 take-a.
+2. Izabrati najbolji take po jasnoci i tempu.
+3. Dodati minimalan edit (title/slides ako treba).
+4. Export u trazenom formatu.
+
+Definition of done:
+- Finalni video spreman za upload.
+
+--------------------------------------------------
+DAY 33 (08 May) - SUBMISSION FORM DRAFT
+--------------------------------------------------
+
+Objectives:
+- Popuniti formu ranije, ne poslednji dan.
+
+Tasks:
+1. Popuniti draft:
+   - opis projekta
+   - tech stack
+   - impact
+   - links (repo/demo/video)
+2. Proveriti sve linkove i dostupnost.
+3. Uskladiti submission copy sa README i videom.
+4. Napraviti final QA check listu.
+
+Definition of done:
+- Submission draft je 90-100% kompletan.
+
+--------------------------------------------------
+DAY 34 (09 May) - FULL DRY RUN
+--------------------------------------------------
+
+Objectives:
+- Simulirati dan sudjenja.
+
+Tasks:
+1. Pokrenuti projekat od nule na cistoj masini (ili clean env).
+2. Proci ceo demo script bez prekida.
+3. Proci checklist:
+   - repo
+   - live demo
+   - video
+   - submission text
+4. Ispraviti poslednje kriticne sitnice.
+
+Definition of done:
+- "Judge simulation" prolazi glatko.
+
+--------------------------------------------------
+DAY 35 (10 May) - FINAL FIX WINDOW
+--------------------------------------------------
+
+Objectives:
+- Zatvoriti samo najvaznije sitnice.
+
+Tasks:
+1. Minor bugfix pass.
+2. Copy polish u UI i docs.
+3. Provera svih env podeavanja.
+4. Zakljucati release tag.
+
+Definition of done:
+- Final build je stabilan i spreman za slanje.
+
+--------------------------------------------------
+DAY 36 (11 May) - SUBMIT DAY
+--------------------------------------------------
+
+Objectives:
+- Bezbedno i na vreme predati projekat.
+
+Tasks:
+1. Finalno pregledati submission polja.
+2. Potvrditi:
+   - GitHub link
+   - live demo link
+   - video link
+3. Poslati submission pre isteka roka.
+4. Sacuvati potvrdu prijave.
+
+Definition of done:
+- Projekat uspesno predat.
+
+--------------------------------------------------
+WEEK 5 SUCCESS CHECKLIST
+--------------------------------------------------
+
+1. Feature freeze ispostovan.
+2. Dokumentacija cista i kompletna.
+3. Demo video kvalitetan i kratak.
+4. Submission forma tacna i potpuna.
+5. Predaja obavljena pre roka.
+
+If all 5 are true -> Week 5 is successful.

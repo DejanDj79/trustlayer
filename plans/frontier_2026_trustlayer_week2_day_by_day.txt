@@ -1,0 +1,149 @@
+TRUSTLAYER - WEEK 2 DAY-BY-DAY PLAN
+Period: 13 Apr 2026 - 19 Apr 2026
+
+STATUS SNAPSHOT (as of 05 Apr 2026)
+- [DONE] Day 8/9 tip posla je delimicno pokriven: liquidity + activity signali su vec u score-u.
+- [DONE] Day 12 smer je pokriven: external failure ne rusi API (graceful fallback + rpcHealth).
+- [IN PROGRESS] Reliability tuning i scoring quality calibration.
+- [TODO] History storage + `GET /v1/history/:mint`.
+- [TODO] History chart UI i observability stack (npr. Sentry).
+
+Goal of week 2:
+- Podici kvalitet score-a i uvesti istoriju + observability.
+
+--------------------------------------------------
+DAY 8 (13 Apr) - LIQUIDITY SIGNAL V1
+--------------------------------------------------
+
+Objectives:
+- Uvesti prvi pouzdan liquidity indikator.
+
+Tasks:
+1. Definisati source za liquidity podatke (primary + fallback).
+2. Implementirati extractor:
+   - total liquidity estimate
+   - pool count (ako je dostupno)
+3. Dodati normalization u scoring.
+4. Dodati test primere za low/high liquidity.
+
+Definition of done:
+- Liquidity signal ulazi u score i vidi se u reasons.
+
+--------------------------------------------------
+DAY 9 (14 Apr) - ACTIVITY SIGNAL V1
+--------------------------------------------------
+
+Objectives:
+- Meriti osnovnu aktivnost tokena.
+
+Tasks:
+1. Definisati activity metrike:
+   - holders delta (npr. 24h/7d ako je dostupno)
+   - tx/trade activity proxy
+2. Implementirati activity module.
+3. Uvesti conservative fallback ako podaci fale.
+4. Unit testovi za edge case-ove.
+
+Definition of done:
+- Activity signal radi bez rusenja endpoint-a i sa fallback-om.
+
+--------------------------------------------------
+DAY 10 (15 Apr) - HISTORY STORAGE
+--------------------------------------------------
+
+Objectives:
+- Cuvati promene score-a kroz vreme.
+
+Tasks:
+1. Dodati DB tabelu za score snapshots.
+2. Snimati snapshot pri svakom racunanju.
+3. Napraviti API rutu:
+   - GET /v1/history/:mint
+4. Dodati retention pravilo (npr. max broj snapshot-a po tokenu).
+
+Definition of done:
+- History endpoint vraca timeline za test token.
+
+--------------------------------------------------
+DAY 11 (16 Apr) - FRONTEND HISTORY UI
+--------------------------------------------------
+
+Objectives:
+- Prikazati trend score-a u UI.
+
+Tasks:
+1. Dodati history chart komponentu.
+2. Dodati "last updated" i "confidence note".
+3. Dodati states:
+   - no history
+   - sparse history
+   - error
+4. Mobile polish za chart sekciju.
+
+Definition of done:
+- Result page prikazuje score + trend bez layout problema.
+
+--------------------------------------------------
+DAY 12 (17 Apr) - OBSERVABILITY + RELIABILITY
+--------------------------------------------------
+
+Objectives:
+- Poboljsati monitoring i stabilnost API-ja.
+
+Tasks:
+1. Integrisati Sentry za backend error tracking.
+2. Dodati request timing logove.
+3. Uvesti cache TTL strategiju po tipu signala.
+4. Dodati circuit breaker/fallback pattern za external API fail.
+
+Definition of done:
+- Sistem degradira graceful bez padanja kada external source zakaze.
+
+--------------------------------------------------
+DAY 13 (18 Apr) - SECURITY/DX PASS
+--------------------------------------------------
+
+Objectives:
+- Srediti osnovnu sigurnost i developer experience.
+
+Tasks:
+1. Input sanitization + stricnija validacija.
+2. Rate-limit tuning.
+3. Dependency audit i update kriticnih paketa.
+4. README update (architecture + troubleshooting).
+
+Definition of done:
+- Nema obvious security rupa u javnom endpoint flow-u.
+
+--------------------------------------------------
+DAY 14 (19 Apr) - WEEK 2 REVIEW
+--------------------------------------------------
+
+Objectives:
+- Zakljuciti nedelju i isplanirati UX sprint.
+
+Tasks:
+1. Snimiti interni demo (score + history).
+2. Weekly update:
+   - nova 2 signala
+   - history endpoint/UI
+   - reliability improvements
+3. Backlog za week 3:
+   - UX refinement
+   - explainer content
+   - compare mode (optional)
+
+Definition of done:
+- Jasna week 3 agenda + stabilan baseline.
+
+--------------------------------------------------
+WEEK 2 SUCCESS CHECKLIST
+--------------------------------------------------
+
+1. Score koristi svih 5 planiranih signala (bar v1).
+2. History endpoint i history UI rade.
+3. External source failure ne rusi API.
+4. Observability ukljucen (Sentry + logs).
+5. README azuriran.
+
+If all 5 are true -> Week 2 is successful.

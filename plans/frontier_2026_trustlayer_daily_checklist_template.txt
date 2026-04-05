@@ -1,0 +1,137 @@
+TRUSTLAYER - DAILY CHECKLIST TEMPLATE
+Use: popunjava se svaki dan (jedna kopija po danu)
+
+TEMPLATE STATUS (as of 05 Apr 2026)
+- [ACTIVE] Koristi status tagove u svakoj dnevnoj kopiji: [DONE] / [IN PROGRESS] / [TODO].
+
+==================================================
+BASIC INFO
+==================================================
+
+Date:
+Week / Day:
+Owner:
+Planned work block (hours):
+
+==================================================
+TODAY'S TOP 3 OUTCOMES
+==================================================
+
+1)
+2)
+3)
+
+Notes:
+- Outcomes treba da budu merljivi (npr. "endpoint vraca score", ne "rad na API-ju").
+
+==================================================
+TASK BREAKDOWN
+==================================================
+
+Task 1:
+- Description:
+- Priority: High / Medium / Low
+- ETA:
+- Status: Not started / In progress / Done
+
+Task 2:
+- Description:
+- Priority: High / Medium / Low
+- ETA:
+- Status: Not started / In progress / Done
+
+Task 3:
+- Description:
+- Priority: High / Medium / Low
+- ETA:
+- Status: Not started / In progress / Done
+
+Optional Task 4:
+- Description:
+- Priority: Medium / Low
+- ETA:
+- Status: Not started / In progress / Done
+
+==================================================
+BLOCKERS
+==================================================
+
+Blocker #1:
+- Problem:
+- Impact:
+- Owner:
+- Mitigation / Next action:
+
+Blocker #2 (optional):
+- Problem:
+- Impact:
+- Owner:
+- Mitigation / Next action:
+
+==================================================
+TECH/QUALITY CHECK
+==================================================
+
+- Build passes locally (yes/no):
+- Lint + typecheck pass (yes/no):
+- Tests run today (yes/no):
+- Critical bug introduced (yes/no):
+- If yes, bug id + fix ETA:
+
+==================================================
+HACKATHON ARTIFACTS CHECK
+==================================================
+
+- Commit pushed today (yes/no):
+- README/docs updated if needed (yes/no):
+- Demo-impact progress made today (yes/no):
+- Weekly update material captured (yes/no):
+
+==================================================
+END-OF-DAY STATUS
+==================================================
+
+Overall day result:
+- Green (plan delivered)
+- Yellow (partial delivery)
+- Red (major miss)
+
+What was completed:
+1)
+2)
+3)
+
+What moved to tomorrow:
+1)
+2)
+
+Key learning today:
+-
+
+==================================================
+NEXT DAY PLAN (PRE-DRAFT)
+==================================================
+
+Tomorrow top priorities:
+1)
+2)
+3)
+
+First task tomorrow morning:
+-
+
+==================================================
+WEEKLY SNAPSHOT (fill once per week)
+==================================================
+
+Week:
+- Biggest win:
+- Biggest risk:
+- KPI snapshot:
+  - API stability:
+  - Demo readiness:
+  - Submission readiness:
+- Decision:
+  - Keep scope
+  - Cut feature
+  - Re-prioritize

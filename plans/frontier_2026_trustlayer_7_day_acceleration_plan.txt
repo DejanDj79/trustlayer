@@ -1,0 +1,162 @@
+TRUSTLAYER PRO - 7 DAY ACCELERATION PLAN
+Period: 06 Apr 2026 - 12 Apr 2026
+
+Purpose:
+- Podici sansu za prolazak tako sto MVP prelazi iz "single score checker" u "koristan alat".
+- Fokus je na 3 core stvari: batch scan, watchlist, alerting.
+
+==================================================
+DAY 1 (06 Apr) - BATCH API FOUNDATION
+==================================================
+
+Goal:
+- Implementirati POST /v1/score/batch za 20-50 mint adresa.
+
+Tasks:
+1. Dodati novu API rutu:
+   - POST /v1/score/batch
+2. Input validation:
+   - mint lista obavezna
+   - max broj mintova po request-u
+   - deduplikacija adresa
+3. Paralelno racunanje score-a sa timeout kontrolom.
+4. Response format:
+   - success rezultati
+   - individual errors po mintu
+
+Definition of done:
+- Jedan request vraca kompletan batch odgovor bez rusenja API-ja.
+
+==================================================
+DAY 2 (07 Apr) - BATCH SCAN WEB UI
+==================================================
+
+Goal:
+- Dodati web ekran za batch scan.
+
+Tasks:
+1. Textarea/input za vise mint adresa.
+2. Poziv batch endpoint-a.
+3. Tabela rezultata:
+   - mint
+   - score
+   - status
+   - confidence
+4. Sortiranje:
+   - najrizicniji prvo
+5. Export:
+   - JSON download
+
+Definition of done:
+- 20 mintova se skenira i prikaze pregledno u jednom prolazu.
+
+==================================================
+DAY 3 (08 Apr) - WATCHLIST MVP
+==================================================
+
+Goal:
+- Omoguciti korisniku da cuva listu tokena za pracenje.
+
+Tasks:
+1. Add/remove token u watchlist.
+2. Cuvanje watchlist-e u localStorage.
+3. Prikaz poslednjeg poznatog score-a po tokenu.
+4. Dugme "Rescan watchlist".
+
+Definition of done:
+- Posle refresh-a stranice watchlist i dalje postoji.
+
+==================================================
+DAY 4 (09 Apr) - ALERTING MVP
+==================================================
+
+Goal:
+- Dodati osnovni alerting kad score padne ispod zadatog threshold-a.
+
+Tasks:
+1. Konfiguracija webhook endpoint-a (Telegram ili Discord).
+2. Pravilo:
+   - alert if score < X
+3. Cooldown:
+   - anti-spam (ne salji stalno isti alert)
+4. Test endpoint:
+   - manual trigger za proveru
+
+Definition of done:
+- Alert stize na webhook za test scenario.
+
+==================================================
+DAY 5 (10 Apr) - PROOF PAGE
+==================================================
+
+Goal:
+- Napraviti "judge-friendly" stranicu koja pokazuje kredibilitet.
+
+Tasks:
+1. Lista 20-30 poznatih tokena.
+2. Batch rezultat za sve iz liste.
+3. Kratka metodologija:
+   - sta score znaci
+   - sta ne znaci
+4. Disclaimer:
+   - nije finansijski savet
+
+Definition of done:
+- Jedna stranica jasno pokazuje vrednost proizvoda.
+
+==================================================
+DAY 6 (11 Apr) - DEPLOY + QA
+==================================================
+
+Goal:
+- Dobiti stabilan javni demo URL i proveriti glavne scenarije.
+
+Tasks:
+1. Deploy web + api.
+2. Env sanity check.
+3. QA scenariji:
+   - healthy rpc
+   - degraded rpc
+   - fallback mode
+4. Bugfix pass za blocker issue.
+
+Definition of done:
+- Live demo radi stabilno i ponovljivo.
+
+==================================================
+DAY 7 (12 Apr) - SUBMISSION PACKAGE
+==================================================
+
+Goal:
+- Zakljuciti kompletan paket za prijavu.
+
+Tasks:
+1. Final README polish.
+2. Demo script (2-3 min).
+3. Demo video recording.
+4. Submission copy + final link check.
+
+Definition of done:
+- Projekat spreman za slanje bez dodatnih tehnickih izmena.
+
+==================================================
+SCOPE RULES (CRITICAL)
+==================================================
+
+1. Ako kasnimo:
+   - prvo sece se polish, ne core funkcionalnost.
+2. Ako i dalje kasnimo:
+   - alerting ostaje minimalan (manual trigger), ali batch + watchlist ostaju obavezni.
+3. Svaki dan mora da ima merljiv ishod:
+   - [DONE] / [IN PROGRESS] / [TODO]
+
+==================================================
+SUCCESS CRITERIA
+==================================================
+
+Minimum za jak hackathon nastup:
+1. Batch scan radi stabilno.
+2. Watchlist radi i cuva stanje.
+3. Alerting radi makar u MVP formi.
+4. Postoji javni demo URL.
+5. Demo video i submission tekst su spremni.

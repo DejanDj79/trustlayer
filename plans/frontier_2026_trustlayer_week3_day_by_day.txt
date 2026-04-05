@@ -1,0 +1,155 @@
+TRUSTLAYER - WEEK 3 DAY-BY-DAY PLAN
+Period: 20 Apr 2026 - 26 Apr 2026
+
+STATUS SNAPSHOT (as of 05 Apr 2026)
+- [DONE] Deo UX polisha vec postoji: confidence prikaz + jasniji reasons + warnings.
+- [DONE] Deo transparency layer postoji kroz `signalDetails` i `rpcHealth`.
+- [IN PROGRESS] "Judge-ready" copy polish i jasniji narativ score metodologije.
+- [TODO] Compare mode i puni performance pass.
+- [TODO] Formalni UX audit + prioritetna lista top 10 frikcija.
+
+Goal of week 3:
+- Pretvoriti "radi" u "uverljivo radi" kroz UX, narativ i product polish.
+
+--------------------------------------------------
+DAY 15 (20 Apr) - UX AUDIT
+--------------------------------------------------
+
+Objectives:
+- Identifikovati sve UX rupe u glavnom flow-u.
+
+Tasks:
+1. Proci ceo user flow od nule.
+2. Napraviti listu frikcija:
+   - unclear copy
+   - nejasan score meaning
+   - error messages
+3. Prioritizovati top 10 UX fix-eva.
+4. Definisati UI acceptance kriterijume.
+
+Definition of done:
+- Postoji jasna prioritetna UX lista sa vlasnikom taska.
+
+--------------------------------------------------
+DAY 16 (21 Apr) - RESULT PAGE POLISH
+--------------------------------------------------
+
+Objectives:
+- Uciniti result page "judge-ready".
+
+Tasks:
+1. Redizajnirati score card:
+   - score broj
+   - status boja
+   - confidence info
+2. Uvesti "why this score?" sekciju sa 5 signala.
+3. Dodati quick glossary (mint authority, liquidity itd).
+4. Poboljsati empty/error state copy.
+
+Definition of done:
+- Prvi put korisnik razume score bez dodatnog objasnjenja.
+
+--------------------------------------------------
+DAY 17 (22 Apr) - COMPARE MODE (OPTIONAL BUT STRONG)
+--------------------------------------------------
+
+Objectives:
+- Dodati poredjenje 2 tokena (ako ne ugrozava core stabilnost).
+
+Tasks:
+1. API:
+   - GET /v1/compare?mintA=&mintB=
+2. Frontend:
+   - compare view sa side-by-side signalima
+3. Fokus na jedan jasan use-case:
+   - "koji je rizicniji token"
+4. Ako kasni:
+   - zamrznuti compare i vratiti fokus na core.
+
+Definition of done:
+- Compare radi ili je eksplicitno odlozen bez tehnickog duga.
+
+--------------------------------------------------
+DAY 18 (23 Apr) - PERFORMANCE PASS
+--------------------------------------------------
+
+Objectives:
+- Smanjiti latency i poboljsati stabilnost.
+
+Tasks:
+1. Profilisati API response time.
+2. Uvesti parallel fetch gde je bezbedno.
+3. Optimizovati DB upite i indekse.
+4. Frontend:
+   - skeleton loading
+   - lazy UI delovi gde ima smisla.
+
+Definition of done:
+- P95 latency vidno manji u odnosu na week 2 baseline.
+
+--------------------------------------------------
+DAY 19 (24 Apr) - TRUST + TRANSPARENCY LAYER
+--------------------------------------------------
+
+Objectives:
+- Uciniti score transparentnim i auditabilnim.
+
+Tasks:
+1. Dodati "score breakdown" endpoint:
+   - raw signal values
+   - weight contribution
+2. Dodati UI modal "How scoring works".
+3. Dodati disclaimer da score nije finansijski savet.
+4. Dokumentovati metodologiju u repo.
+
+Definition of done:
+- Korisnik i sudija mogu pratiti kako je score izracunat.
+
+--------------------------------------------------
+DAY 20 (25 Apr) - QA + BUG BURNDOWN
+--------------------------------------------------
+
+Objectives:
+- Smanjiti bug backlog pre week 4.
+
+Tasks:
+1. End-to-end test run na 20+ tokena.
+2. Klasifikovati bugove:
+   - blocker
+   - major
+   - minor
+3. Zatvoriti sve blocker i vecinu major bugova.
+4. Dodati regresione testove za popravljene bugove.
+
+Definition of done:
+- Nema otvorenih blocker bugova.
+
+--------------------------------------------------
+DAY 21 (26 Apr) - WEEK 3 REVIEW
+--------------------------------------------------
+
+Objectives:
+- Zakljuciti UX sprint i spremiti stabilizaciju.
+
+Tasks:
+1. Snimiti 2-min product walkthrough (interni).
+2. Weekly update sa before/after UX poboljsanjima.
+3. Zakljucati backlog za week 4:
+   - test hardening
+   - deployment reliability
+   - final content prep
+
+Definition of done:
+- Proizvod izgleda i deluje kao ozbiljan MVP, ne kao prototip.
+
+--------------------------------------------------
+WEEK 3 SUCCESS CHECKLIST
+--------------------------------------------------
+
+1. Result page je jasna i citljiva.
+2. Score breakdown je transparentan.
+3. P95 latency prihvatljiv i stabilan.
+4. Nema blocker bugova.
+5. Product demo izgleda "investor-ready".
+
+If all 5 are true -> Week 3 is successful.

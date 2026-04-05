@@ -1,0 +1,145 @@
+TRUSTLAYER - WEEK 4 DAY-BY-DAY PLAN
+Period: 27 Apr 2026 - 03 May 2026
+
+STATUS SNAPSHOT (as of 05 Apr 2026)
+- [IN PROGRESS] API hardening je zapocet ranije (retry, timeout, fallback, diagnostics).
+- [TODO] Formalni test matrix, contract test suite i golden-token validation pass.
+- [TODO] Deployment runbook + staging/production operativna procedura.
+- [TODO] Full e2e final pass na clean environment-u.
+
+Goal of week 4:
+- Stabilizacija, testiranje i produkcioni kvalitet za submission.
+
+--------------------------------------------------
+DAY 22 (27 Apr) - TEST PLAN LOCK
+--------------------------------------------------
+
+Objectives:
+- Zakljucati sta tacno testiramo do kraja.
+
+Tasks:
+1. Definisati test matrix:
+   - unit
+   - integration
+   - e2e
+2. Odabrati "golden token" set (20-30 tokena).
+3. Definisati acceptance kriterijume po flow-u.
+4. Napraviti bug triage board.
+
+Definition of done:
+- Tim zna sta je "done" za finalnu predaju.
+
+--------------------------------------------------
+DAY 23 (28 Apr) - API HARDENING
+--------------------------------------------------
+
+Objectives:
+- Ojacati backend za peak usage i edge case-ove.
+
+Tasks:
+1. Idempotent handling za score racunanje.
+2. Timeout/retry tuning.
+3. Batch endpoint (optional):
+   - POST /v1/score/batch
+4. Dodati contract testove za API response.
+
+Definition of done:
+- API response format stabilan i predvidiv.
+
+--------------------------------------------------
+DAY 24 (29 Apr) - DATA QUALITY PASS
+--------------------------------------------------
+
+Objectives:
+- Smanjiti false positive/false negative score anomalije.
+
+Tasks:
+1. Analiza score rezultata na golden token set-u.
+2. Fine-tuning tezina i threshold-a.
+3. Dokumentovati promene scoring formule.
+4. Validirati da tuning nije degradirao stabilnost.
+
+Definition of done:
+- Score deluje konzistentno na glavnim kategorijama tokena.
+
+--------------------------------------------------
+DAY 25 (30 Apr) - FRONTEND PRODUCTION POLISH
+--------------------------------------------------
+
+Objectives:
+- Zatvoriti UI nedostatke i pristupacnost.
+
+Tasks:
+1. A11y osnova:
+   - focus states
+   - semantic labels
+2. SEO/osnovni metadata.
+3. Responsive final pass (mobile/tablet/desktop).
+4. Vizuelna konzistentnost i spacing cleanup.
+
+Definition of done:
+- UI izgleda zavrseno i profesionalno.
+
+--------------------------------------------------
+DAY 26 (01 May) - DEPLOYMENT + OPS
+--------------------------------------------------
+
+Objectives:
+- Uciniti deploy reproducibilnim i bez stresa.
+
+Tasks:
+1. Produkcioni deploy frontend + api + db migracije.
+2. Staging i production env sanity check.
+3. Dodati uptime check + basic alerts.
+4. Runbook:
+   - kako restartovati
+   - kako rollback-ovati
+
+Definition of done:
+- Imas stabilan live URL i jasnu operativnu proceduru.
+
+--------------------------------------------------
+DAY 27 (02 May) - E2E FINAL PASS
+--------------------------------------------------
+
+Objectives:
+- Simulirati iskustvo sudije od pocetka do kraja.
+
+Tasks:
+1. Full e2e prolaz kroz 10+ scenarija.
+2. Popraviti sve kriticne bugove.
+3. Pripremiti fallback demo scenarije.
+4. Zakljuciti "known limitations" listu.
+
+Definition of done:
+- Nema kriticnih bagova u demo flow-u.
+
+--------------------------------------------------
+DAY 28 (03 May) - WEEK 4 REVIEW
+--------------------------------------------------
+
+Objectives:
+- Priprema za submission week.
+
+Tasks:
+1. Internal dry run pitch (3 min).
+2. Weekly update:
+   - stability status
+   - open risks
+   - plan za finalnu nedelju
+3. Feature freeze kandidat lista.
+
+Definition of done:
+- Jasno je sta ulazi, a sta ne ulazi u final build.
+
+--------------------------------------------------
+WEEK 4 SUCCESS CHECKLIST
+--------------------------------------------------
+
+1. Live deploy stabilan.
+2. API + UI production-polished.
+3. Score formula kalibrisana i dokumentovana.
+4. Kriticni e2e scenariji prolaze.
+5. Spreman teren za final submission week.
+
+If all 5 are true -> Week 4 is successful.

@@ -1,0 +1,13 @@
+{
+  "name": "trustlayer-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "start:api": "npm --workspace apps/api run start",
+    "start:web": "npm --workspace apps/web run start"
+  }
+}

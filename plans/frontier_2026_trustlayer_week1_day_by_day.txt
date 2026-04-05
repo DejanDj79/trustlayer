@@ -1,0 +1,197 @@
+TRUSTLAYER - WEEK 1 DAY-BY-DAY PLAN
+Period: 06 Apr 2026 - 12 Apr 2026
+
+STATUS SNAPSHOT (as of 05 Apr 2026)
+- [DONE] Glavni cilj nedelje vec ostvaren: vertical slice radi end-to-end.
+- [DONE] API foundation isporucen (`/health`, `/v1/score/:mint`).
+- [DONE] Solana integracije + scoring v1 + fallback mode rade.
+- [DONE] Frontend prikazuje score/status/reasons/confidence.
+- [IN PROGRESS] Hardening (rate-limit/security/test coverage) i judge polish.
+- [TODO] Formalni "week review" artefakti (snimljen weekly update + final checklist pass).
+
+Goal of week 1:
+- Imati funkcionalan vertical slice:
+  user unese mint -> backend vrati score -> frontend prikaze rezultat.
+
+--------------------------------------------------
+DAY 1 (06 Apr) - PROJECT BOOTSTRAP
+--------------------------------------------------
+
+Objectives:
+- Zakljucati scope i postaviti repo/okruzenje.
+
+Tasks:
+1. Kreirati repozitorijum i osnovnu strukturu:
+   - apps/web
+   - apps/api
+   - packages/shared
+2. Dodati osnovne alate:
+   - TypeScript
+   - ESLint
+   - Prettier
+   - husky + lint-staged (opciono)
+3. Dodati CI (GitHub Actions):
+   - install
+   - lint
+   - typecheck
+   - test (placeholder)
+4. Definisati env varijable i napraviti `.env.example`.
+5. U README upisati:
+   - one-liner projekta
+   - kako pokrenuti lokalno
+   - roadmap (MVP)
+
+Definition of done:
+- `pnpm dev` pali web i api lokalno.
+- CI prolazi za prazan skeleton.
+
+--------------------------------------------------
+DAY 2 (07 Apr) - API FOUNDATION
+--------------------------------------------------
+
+Objectives:
+- Postaviti API skeleton i health endpoint.
+
+Tasks:
+1. U `apps/api` postaviti Fastify/NestJS (izabrati jedan, ne oba).
+2. Dodati bazne rute:
+   - GET /health
+   - GET /v1/score/:mint (za sada mock odgovor)
+3. Dodati input validaciju (Zod):
+   - provera Solana mint formata.
+4. Dodati centralizovan error format:
+   - code
+   - message
+   - requestId
+5. Dodati osnovni logging middleware.
+
+Definition of done:
+- `/health` radi.
+- `/v1/score/:mint` vraca mock JSON po stabilnom contract-u.
+
+--------------------------------------------------
+DAY 3 (08 Apr) - SOLANA DATA INTEGRATION V1
+--------------------------------------------------
+
+Objectives:
+- Povuci prve realne signale za token.
+
+Tasks:
+1. Integrisati Solana RPC provider (npr. Helius endpoint).
+2. Implementirati data fetch sloj za:
+   - token metadata basics
+   - mint/freeze authority info
+3. Implementirati holder concentration signal (top holders %).
+4. Dodati timeout/retry mehanizam za external pozive.
+5. Uvesti cache (Redis ili in-memory za start).
+
+Definition of done:
+- Za validan mint endpoint vraca realne signal podatke (jos bez final score formule).
+
+--------------------------------------------------
+DAY 4 (09 Apr) - SCORING ENGINE V1
+--------------------------------------------------
+
+Objectives:
+- Pretvoriti signale u 0-100 score.
+
+Tasks:
+1. Definisati scoring pravila i tezine (v1):
+   - holder concentration
+   - authority risk
+   - metadata confidence
+   - liquidity/activity placeholder
+2. Implementirati scoring modul kao izolovan package/folder.
+3. Dodati unit testove za scoring:
+   - high risk scenario
+   - medium risk scenario
+   - low risk scenario
+4. Vratiti response format:
+   - score
+   - status (green/yellow/red)
+   - reasons[]
+   - timestamp
+
+Definition of done:
+- `/v1/score/:mint` vraca determinizovan score + reasons.
+- Unit testovi prolaze.
+
+--------------------------------------------------
+DAY 5 (10 Apr) - FRONTEND V1 (RESULT PAGE)
+--------------------------------------------------
+
+Objectives:
+- Prikazati API rezultat kroz jasan UI.
+
+Tasks:
+1. U `apps/web` napraviti:
+   - home page sa search inputom (mint)
+   - result page za score prikaz
+2. Prikazati:
+   - score broj
+   - status badge (green/yellow/red)
+   - reasons lista
+3. Dodati loading/error/empty state.
+4. Dodati mobile responsiveness (osnovni breakpoint test).
+
+Definition of done:
+- Korisnik moze da unese mint i vidi realan rezultat iz API-ja.
+
+--------------------------------------------------
+DAY 6 (11 Apr) - HARDENING + DX
+--------------------------------------------------
+
+Objectives:
+- Stabilnost i lakoca rada.
+
+Tasks:
+1. Dodati request-level caching za score endpoint.
+2. Dodati basic rate limit na API.
+3. Dodati e2e smoke test:
+   - valid mint flow
+   - invalid mint flow
+4. Ocistiti strukturu fajlova i naming.
+5. Dopuniti README sa:
+   - architecture snapshot
+   - API contract primerima
+
+Definition of done:
+- End-to-end flow radi pouzdano.
+- Novi developer moze da podigne projekat za <= 15 min.
+
+--------------------------------------------------
+DAY 7 (12 Apr) - WEEK 1 REVIEW + HACKATHON UPDATE
+--------------------------------------------------
+
+Objectives:
+- Zakljuciti sedmicu i pripremiti week 2.
+
+Tasks:
+1. Snimiti kratak demo (60-90 sek) interni:
+   - search -> score rezultat.
+2. Napisati weekly update:
+   - sta je uradjeno
+   - sta je sledece
+   - blokeri/rizici
+3. Napraviti backlog za week 2:
+   - liquidity/activity signal improvement
+   - history storage
+   - UI polish
+4. Feature freeze za nedelju:
+   - zatvoriti otvorene kriticne bug-ove.
+
+Definition of done:
+- Imas dokaz rada (video + commit history + update).
+- Jasno definisan plan za week 2.
+
+--------------------------------------------------
+WEEK 1 SUCCESS CHECKLIST
+--------------------------------------------------
+
+1. Working API endpoint sa realnim signalima.
+2. Working web flow od unosa do rezultata.
+3. Scoring engine v1 testiran.
+4. CI pipeline aktivan.
+5. README dovoljno jasan za trecu osobu.
+
+If all 5 are true -> Week 1 is successful.

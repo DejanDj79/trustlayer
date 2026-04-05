@@ -1,0 +1,148 @@
+:root {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #0f172a;
+  background: linear-gradient(135deg, #edf4ff, #f7fbff);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.subtitle {
+  margin: 0.25rem 0 1.5rem;
+  color: #475569;
+}
+
+.card {
+  background: white;
+  border-radius: 14px;
+  padding: 1rem;
+  border: 1px solid #dbe3ef;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.7rem 1rem;
+  font-weight: 700;
+  background: #0f172a;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.status {
+  font-weight: 700;
+}
+
+.status.green {
+  color: #15803d;
+}
+
+.status.yellow {
+  color: #ca8a04;
+}
+
+.status.red {
+  color: #b91c1c;
+}
+
+.error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.muted {
+  color: #64748b;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.rpc-health {
+  margin-top: 0.75rem;
+  border: 1px solid #d6e3f7;
+  background: #f8fbff;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.rpc-health-title {
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.rpc-health ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.rpc-status-ok {
+  color: #166534;
+}
+
+.rpc-status-failed {
+  color: #991b1b;
+}
+
+.rpc-status-degraded {
+  color: #92400e;
+}
+
+.rpc-status-used,
+.rpc-status-attempted,
+.rpc-status-pending,
+.rpc-status-not-used,
+.rpc-status-not-needed,
+.rpc-status-unknown {
+  color: #334155;
+}
+
+.warnings {
+  margin-top: 0.75rem;
+  border: 1px solid #f5d0a8;
+  background: #fff7ed;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.hidden {
+  display: none;
+}

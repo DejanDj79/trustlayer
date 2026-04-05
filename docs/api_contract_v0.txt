@@ -1,0 +1,199 @@
+TRUSTLAYER API CONTRACT v2
+
+Base URL:
+- http://127.0.0.1:8787
+
+--------------------------------------------------
+GET /health
+--------------------------------------------------
+
+Response 200:
+{
+  "status": "ok",
+  "service": "trustlayer-api",
+  "timestamp": "2026-04-05T00:00:00.000Z"
+}
+
+--------------------------------------------------
+GET /v1/score/:mint
+--------------------------------------------------
+
+Path params:
+- mint (string, base58, 32-44 chars)
+
+Response 200:
+{
+  "mint": "So11111111111111111111111111111111111111112",
+  "score": 78,
+  "status": "green",
+  "scoreConfidence": "high",
+  "reasons": [
+    "Top 10 holders concentration: 18.0%",
+    "Authority controls: mint authority removed, freeze authority removed",
+    "Liquidity estimate: $12,400,000 across 19 pools",
+    "24h activity: $45,200,000 volume, 6210 tx",
+    "Metadata confidence: 80.0%"
+  ],
+  "dataSource": "solana-rpc+dexscreener",
+  "signalDetails": {
+    "mintAuthorityEnabled": false,
+    "freezeAuthorityEnabled": false,
+    "holderConcentrationPct": 18,
+    "holderConcentrationSource": "rpc",
+    "holderSampledAccounts": null,
+    "holderTotalAccounts": null,
+    "holderSampleCoveragePct": null,
+    "holderPagesFetched": null,
+    "scoreConfidence": "high",
+    "marketPairCount": 19,
+    "liquidityUsd": 12400000,
+    "volume24hUsd": 45200000,
+    "tx24h": 6210
+  },
+  "rpcHealth": {
+    "largestHolders": {
+      "status": "ok",
+      "providers": [],
+      "note": "Top holders fetched via getTokenLargestAccounts."
+    },
+    "tokenAccountsFallback": {
+      "status": "not-used",
+      "providers": [],
+      "note": null,
+      "pagesFetched": 0
+    },
+    "tokenSupply": {
+      "status": "not-needed",
+      "providers": [],
+      "note": "Mint account already includes supply."
+    }
+  },
+  "warnings": [],
+  "generatedAt": "2026-04-05T00:00:00.000Z"
+}
+
+Response 200 (heuristic market fallback, when DexScreener fails):
+{
+  "mint": "So11111111111111111111111111111111111111112",
+  "score": 65,
+  "status": "yellow",
+  "scoreConfidence": "low",
+  "reasons": [
+    "Top 10 holders concentration: 21.3%",
+    "Authority controls: mint authority removed, freeze authority removed",
+    "Liquidity confidence: 63.0% (heuristic)",
+    "Activity confidence: 44.0% (heuristic)",
+    "Metadata confidence: 80.0%"
+  ],
+  "dataSource": "solana-rpc+heuristics",
+  "signalDetails": {
+    "mintAuthorityEnabled": false,
+    "freezeAuthorityEnabled": false,
+    "holderConcentrationPct": 21.3,
+    "holderConcentrationSource": "heuristic",
+    "holderSampledAccounts": null,
+    "holderTotalAccounts": null,
+    "holderSampleCoveragePct": null,
+    "holderPagesFetched": null,
+    "scoreConfidence": "low",
+    "marketPairCount": null,
+    "liquidityUsd": null,
+    "volume24hUsd": null,
+    "tx24h": null
+  },
+  "rpcHealth": {
+    "largestHolders": {
+      "status": "failed",
+      "providers": [
+        {
+          "endpoint": "mainnet.helius-rpc.com",
+          "attempt": 1,
+          "message": "RPC getTokenLargestAccounts: Too many accounts requested..."
+        }
+      ],
+      "note": "getTokenLargestAccounts failed across configured providers."
+    },
+    "tokenAccountsFallback": {
+      "status": "ok",
+      "providers": [],
+      "note": "Holder concentration estimated from token accounts fallback.",
+      "pagesFetched": 6
+    },
+    "tokenSupply": {
+      "status": "degraded",
+      "providers": [],
+      "note": "getTokenSupply responded but without usable amount."
+    }
+  },
+  "warnings": [
+    "Using heuristic market signals: DexScreener HTTP 429",
+    "Score adjusted -15 because holder concentration is heuristic."
+  ],
+  "generatedAt": "2026-04-05T00:00:00.000Z"
+}
+
+Response 200 (full fallback mode, when Solana RPC fails):
+{
+  "mint": "So11111111111111111111111111111111111111112",
+  "score": 52,
+  "status": "yellow",
+  "scoreConfidence": "low",
+  "reasons": [
+    "Top 10 holders concentration: 48.0%",
+    "Authority controls: authority state unavailable (fallback mode)",
+    "Liquidity confidence: 63.0% (heuristic)",
+    "Activity confidence: 44.0% (heuristic)",
+    "Metadata confidence: 37.0%"
+  ],
+  "dataSource": "fallback",
+  "signalDetails": {
+    "mintAuthorityEnabled": null,
+    "freezeAuthorityEnabled": null,
+    "holderConcentrationPct": 48.0,
+    "holderConcentrationSource": "heuristic",
+    "holderSampledAccounts": null,
+    "holderTotalAccounts": null,
+    "holderSampleCoveragePct": null,
+    "holderPagesFetched": null,
+    "scoreConfidence": "low",
+    "marketPairCount": null,
+    "liquidityUsd": null,
+    "volume24hUsd": null,
+    "tx24h": null
+  },
+  "warnings": [
+    "Using fallback signals because Solana RPC data failed: RPC HTTP 429"
+  ],
+  "generatedAt": "2026-04-05T00:00:00.000Z"
+}
+
+Response 400:
+{
+  "error": "Invalid Solana mint address",
+  "hint": "Use a base58 address with 32-44 chars"
+}
+
+Response 404:
+{
+  "error": "Not found"
+}
+
+Possible `holderConcentrationSource` values:
+- `rpc`
+- `rpc-token-accounts-exact`
+- `rpc-token-accounts-estimate`
+- `heuristic`
+
+Possible `rpcHealth.*.status` values:
+- `ok`
+- `degraded`
+- `failed`
+- `used`
+- `attempted`
+- `not-used`
+- `not-needed`
+- `unknown`
+
+Status policy:
+- `green` requires `scoreConfidence = "high"`.
+- For `scoreConfidence = "medium"` or `low`, max status is `yellow`.
