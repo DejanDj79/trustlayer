@@ -7,12 +7,14 @@ TrustLayer is a Solana token risk scoring MVP for hackathon demos.
 - API (`apps/api`) with:
   - `GET /health`
   - `GET /v1/score/:mint`
+  - `GET /v1/top-tokens?limit=20` (CoinGecko-backed market list + fallback)
   - multi-RPC failover and provider diagnostics
   - holder concentration fallback logic
   - confidence-aware status policy (`green` only with `high` confidence)
   - in-memory score cache + in-flight dedupe by mint
 - Web app (`apps/web`) with:
   - mint input and analysis CTA
+  - market table with top Solana tokens (CoinGecko/Coinbase-style UX)
   - score ring, status, confidence, signal breakdown
   - liquidity/volume/tx/pools metrics
   - RPC health and warning panels

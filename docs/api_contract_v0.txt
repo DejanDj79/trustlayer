@@ -248,3 +248,34 @@ Holder concentration guardrails:
   - `signalDetails.scoreGuardrailApplied`
   - `signalDetails.scoreGuardrailTier` (`high` or `critical`)
   - `signalDetails.scoreGuardrailCap`
+
+--------------------------------------------------
+GET /v1/top-tokens?limit=20
+--------------------------------------------------
+
+Query params:
+- `limit` (optional, integer, default 20, max 30)
+
+Response 200:
+{
+  "tokens": [
+    {
+      "rank": 1,
+      "symbol": "SOL",
+      "name": "Wrapped SOL",
+      "mint": "So11111111111111111111111111111111111111112",
+      "priceUsd": 180.52,
+      "marketCapUsd": 82000000000,
+      "change24hPct": 2.14,
+      "imageUrl": "https://.../sol.png"
+    }
+  ],
+  "source": "coingecko",
+  "warnings": [],
+  "cache": {
+    "hit": false,
+    "ageMs": 0,
+    "ttlMs": 300000
+  },
+  "generatedAt": "2026-04-07T00:00:00.000Z"
+}

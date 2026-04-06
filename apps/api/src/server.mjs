@@ -53,8 +53,57 @@ const HOLDER_CRITICAL_CONCENTRATION_SCORE_CAP = Number(
 const DEXSCREENER_API_BASE =
   process.env.DEXSCREENER_API_BASE || "https://api.dexscreener.com/latest/dex/tokens";
 const MARKET_TIMEOUT_MS = Number(process.env.MARKET_TIMEOUT_MS || 5000);
+const COINGECKO_API_BASE = process.env.COINGECKO_API_BASE || "https://api.coingecko.com/api/v3";
+const TOP_TOKENS_DEFAULT_LIMIT = Number(process.env.TOP_TOKENS_DEFAULT_LIMIT || 20);
+const TOP_TOKENS_MAX_LIMIT = Number(process.env.TOP_TOKENS_MAX_LIMIT || 30);
+const TOP_TOKENS_MARKETS_FETCH_SIZE = Number(process.env.TOP_TOKENS_MARKETS_FETCH_SIZE || 80);
+const TOP_TOKENS_CACHE_TTL_MS = Number(process.env.TOP_TOKENS_CACHE_TTL_MS || 300000);
+const TOP_TOKENS_TIMEOUT_MS = Number(process.env.TOP_TOKENS_TIMEOUT_MS || 10000);
 const scoreCache = new Map();
 const scoreBuildInFlight = new Map();
+const topTokensCache = new Map();
+const TOP_SOLANA_TOKENS_FALLBACK = [
+  {
+    rank: 1,
+    symbol: "SOL",
+    name: "Wrapped SOL",
+    mint: "So11111111111111111111111111111111111111112",
+    priceUsd: null,
+    marketCapUsd: null,
+    change24hPct: null,
+    imageUrl: null
+  },
+  {
+    rank: 2,
+    symbol: "USDC",
+    name: "USD Coin",
+    mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    priceUsd: null,
+    marketCapUsd: null,
+    change24hPct: null,
+    imageUrl: null
+  },
+  {
+    rank: 3,
+    symbol: "USDT",
+    name: "Tether USD",
+    mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    priceUsd: null,
+    marketCapUsd: null,
+    change24hPct: null,
+    imageUrl: null
+  },
+  {
+    rank: 4,
+    symbol: "JUP",
+    name: "Jupiter",
+    mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    priceUsd: null,
+    marketCapUsd: null,
+    change24hPct: null,
+    imageUrl: null
+  }
+];
 
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -184,6 +233,60 @@ function withCacheMeta(assessment, cacheMeta) {
     ...assessment,
     cache: cacheMeta
   };
+}
+
+async function fetchJsonWithTimeout(url, timeoutMs, headers = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        ...headers
+      },
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    return await response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function normalizeTopTokensLimit(rawValue) {
+  const fallback = Number.isFinite(TOP_TOKENS_DEFAULT_LIMIT) ? TOP_TOKENS_DEFAULT_LIMIT : 20;
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Math.max(1, Math.min(fallback, TOP_TOKENS_MAX_LIMIT));
+  }
+  return Math.max(1, Math.min(Math.trunc(parsed), TOP_TOKENS_MAX_LIMIT));
+}
+
+function buildTopTokensResponse(tokens, source, warnings, cacheMeta) {
+  return {
+    tokens,
+    source,
+    warnings,
+    cache: cacheMeta,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function buildFallbackTopTokens(limit, warning) {
+  const tokens = TOP_SOLANA_TOKENS_FALLBACK.slice(0, limit);
+  return buildTopTokensResponse(
+    tokens,
+    "fallback",
+    warning ? [warning] : [],
+    {
+      hit: false,
+      ageMs: 0,
+      ttlMs: TOP_TOKENS_CACHE_TTL_MS
+    }
+  );
 }
 
 function sleep(ms) {
@@ -952,6 +1055,106 @@ async function fetchDexScreenerSignals(mint) {
   }
 }
 
+async function fetchTopSolanaTokens(limit) {
+  const normalizedLimit = normalizeTopTokensLimit(limit);
+  const cacheKey = String(normalizedLimit);
+  const cached = topTokensCache.get(cacheKey);
+  const now = Date.now();
+
+  if (cached && now - cached.cachedAt < TOP_TOKENS_CACHE_TTL_MS) {
+    return buildTopTokensResponse(cached.tokens, cached.source, cached.warnings, {
+      hit: true,
+      ageMs: now - cached.cachedAt,
+      ttlMs: TOP_TOKENS_CACHE_TTL_MS
+    });
+  }
+
+  try {
+    const fetchSize = Math.max(normalizedLimit, TOP_TOKENS_MARKETS_FETCH_SIZE);
+    const marketsUrl = new URL(`${COINGECKO_API_BASE}/coins/markets`);
+    marketsUrl.searchParams.set("vs_currency", "usd");
+    marketsUrl.searchParams.set("category", "solana-ecosystem");
+    marketsUrl.searchParams.set("order", "market_cap_desc");
+    marketsUrl.searchParams.set("per_page", String(fetchSize));
+    marketsUrl.searchParams.set("page", "1");
+    marketsUrl.searchParams.set("sparkline", "false");
+
+    const listUrl = `${COINGECKO_API_BASE}/coins/list?include_platform=true`;
+
+    const [marketsPayload, listPayload] = await Promise.all([
+      fetchJsonWithTimeout(marketsUrl.toString(), TOP_TOKENS_TIMEOUT_MS),
+      fetchJsonWithTimeout(listUrl, TOP_TOKENS_TIMEOUT_MS)
+    ]);
+
+    const markets = Array.isArray(marketsPayload) ? marketsPayload : [];
+    const list = Array.isArray(listPayload) ? listPayload : [];
+    const mintByCoinId = new Map();
+
+    for (const coin of list) {
+      const id = coin?.id;
+      const mint = coin?.platforms?.solana;
+      if (!id || !mint || !validateMint(mint)) {
+        continue;
+      }
+      mintByCoinId.set(id, mint);
+    }
+
+    const tokens = [];
+    for (const market of markets) {
+      const mint = mintByCoinId.get(market?.id);
+      if (!mint) {
+        continue;
+      }
+      tokens.push({
+        rank: Number(market?.market_cap_rank || tokens.length + 1),
+        symbol: String(market?.symbol || "").toUpperCase(),
+        name: String(market?.name || "Unknown"),
+        mint,
+        priceUsd: Number.isFinite(Number(market?.current_price))
+          ? Number(market.current_price)
+          : null,
+        marketCapUsd: Number.isFinite(Number(market?.market_cap))
+          ? Number(market.market_cap)
+          : null,
+        change24hPct: Number.isFinite(Number(market?.price_change_percentage_24h))
+          ? Number(market.price_change_percentage_24h)
+          : null,
+        imageUrl: market?.image || null
+      });
+      if (tokens.length >= normalizedLimit) {
+        break;
+      }
+    }
+
+    if (tokens.length === 0) {
+      throw new Error("No top tokens with valid Solana mints returned from CoinGecko.");
+    }
+
+    topTokensCache.set(cacheKey, {
+      tokens,
+      source: "coingecko",
+      warnings: [],
+      cachedAt: Date.now()
+    });
+
+    return buildTopTokensResponse(tokens, "coingecko", [], {
+      hit: false,
+      ageMs: 0,
+      ttlMs: TOP_TOKENS_CACHE_TTL_MS
+    });
+  } catch (error) {
+    const warning = `Using fallback top tokens list because external market feed failed: ${error.message}`;
+    const fallback = buildFallbackTopTokens(normalizedLimit, warning);
+    topTokensCache.set(cacheKey, {
+      tokens: fallback.tokens,
+      source: fallback.source,
+      warnings: fallback.warnings,
+      cachedAt: Date.now()
+    });
+    return fallback;
+  }
+}
+
 async function fetchMintSignals(mint) {
   const mintResult = await rpcCall("getAccountInfo", [
     mint,
@@ -1323,6 +1526,22 @@ const server = http.createServer((req, res) => {
         inFlightBuilds: scoreBuildInFlight.size
       }
     });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/v1/top-tokens") {
+    const requestedLimit = parsedUrl.searchParams.get("limit");
+    const limit = normalizeTopTokensLimit(requestedLimit);
+    fetchTopSolanaTokens(limit)
+      .then((payload) => {
+        sendJson(res, 200, payload);
+      })
+      .catch((error) => {
+        sendJson(res, 500, {
+          error: "Failed to load top tokens",
+          details: error.message
+        });
+      });
     return;
   }
 

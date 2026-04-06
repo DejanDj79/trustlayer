@@ -9,6 +9,7 @@ CURRENT STATUS UPDATE (as of 05 Apr 2026)
 - [DONE] `rpcHealth` dijagnostika dodata u API i prikazana u UI.
 - [DONE] Request-level in-memory cache + in-flight dedupe po mint-u dodati na `/v1/score/:mint`.
 - [DONE] Judge polish UI zavrsen (empty/loading/error state + metrics + diagnostics layout).
+- [DONE] Market terminal UX dodat: top Solana token tabela + one-click analyze flow.
 - [DONE] Operativna dokumentacija prosirena (`README`, `.env.example`, API contract, smoke script).
 - [DONE] Golden token benchmark scaffold dodat (`docs/golden_tokens_v1.csv` + `scripts/benchmark_golden_tokens.sh`).
 - [IN PROGRESS] Tuning scoring formule i guardrail pragova na "golden token" setu.
