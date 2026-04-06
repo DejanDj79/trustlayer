@@ -1,0 +1,4 @@
+# label,mint,min_score,max_score,expected_status,notes
+wSOL,So11111111111111111111111111111111111111112,55,80,yellow,Highly liquid benchmark asset; status should remain non-green when confidence is not high.
+USDC,EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v,40,80,yellow,Stablecoin reference; validate consistency and source/warning behavior.
+USDT,Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB,35,80,yellow,Stablecoin reference; often exercises fallback branch depending on RPC provider.

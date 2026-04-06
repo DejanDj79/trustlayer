@@ -10,7 +10,8 @@ CURRENT STATUS UPDATE (as of 05 Apr 2026)
 - [DONE] Request-level in-memory cache + in-flight dedupe po mint-u dodati na `/v1/score/:mint`.
 - [DONE] Judge polish UI zavrsen (empty/loading/error state + metrics + diagnostics layout).
 - [DONE] Operativna dokumentacija prosirena (`README`, `.env.example`, API contract, smoke script).
-- [IN PROGRESS] Tuning scoring formule na "golden token" setu.
+- [DONE] Golden token benchmark scaffold dodat (`docs/golden_tokens_v1.csv` + `scripts/benchmark_golden_tokens.sh`).
+- [IN PROGRESS] Tuning scoring formule i guardrail pragova na "golden token" setu.
 - [TODO] History endpoint/UI (`/v1/history/:mint`) i timeline chart.
 - [TODO] Produkcioni deploy + javni demo URL + submission video.
 

@@ -40,6 +40,16 @@ const HOLDER_TOKEN_ACCOUNTS_MAX_PAGES = Number(
 );
 const HOLDER_HEURISTIC_PENALTY = Number(process.env.HOLDER_HEURISTIC_PENALTY || 15);
 const HOLDER_HEURISTIC_MAX_SCORE = Number(process.env.HOLDER_HEURISTIC_MAX_SCORE || 69);
+const HOLDER_HIGH_CONCENTRATION_PCT = Number(process.env.HOLDER_HIGH_CONCENTRATION_PCT || 70);
+const HOLDER_CRITICAL_CONCENTRATION_PCT = Number(
+  process.env.HOLDER_CRITICAL_CONCENTRATION_PCT || 85
+);
+const HOLDER_HIGH_CONCENTRATION_SCORE_CAP = Number(
+  process.env.HOLDER_HIGH_CONCENTRATION_SCORE_CAP || 65
+);
+const HOLDER_CRITICAL_CONCENTRATION_SCORE_CAP = Number(
+  process.env.HOLDER_CRITICAL_CONCENTRATION_SCORE_CAP || 55
+);
 const DEXSCREENER_API_BASE =
   process.env.DEXSCREENER_API_BASE || "https://api.dexscreener.com/latest/dex/tokens";
 const MARKET_TIMEOUT_MS = Number(process.env.MARKET_TIMEOUT_MS || 5000);
@@ -559,6 +569,47 @@ function computeScoreBreakdown(signals) {
   };
 }
 
+function applyHolderConcentrationGuardrails(score, holderConcentration) {
+  const normalizedConcentration = clamp(holderConcentration, 0, 1);
+  const concentrationPct = normalizedConcentration * 100;
+  const highThreshold = clamp(HOLDER_HIGH_CONCENTRATION_PCT / 100, 0, 1);
+  const criticalThreshold = clamp(HOLDER_CRITICAL_CONCENTRATION_PCT / 100, 0, 1);
+  const highCap = Math.round(clamp(HOLDER_HIGH_CONCENTRATION_SCORE_CAP / 100, 0, 1) * 100);
+  const criticalCap = Math.round(clamp(HOLDER_CRITICAL_CONCENTRATION_SCORE_CAP / 100, 0, 1) * 100);
+
+  if (normalizedConcentration >= criticalThreshold && score > criticalCap) {
+    return {
+      score: criticalCap,
+      applied: true,
+      tier: "critical",
+      cap: criticalCap,
+      warning: `Score capped at ${criticalCap} because top holder concentration is ${concentrationPct.toFixed(
+        1
+      )}% (critical concentration guardrail).`
+    };
+  }
+
+  if (normalizedConcentration >= highThreshold && score > highCap) {
+    return {
+      score: highCap,
+      applied: true,
+      tier: "high",
+      cap: highCap,
+      warning: `Score capped at ${highCap} because top holder concentration is ${concentrationPct.toFixed(
+        1
+      )}% (high concentration guardrail).`
+    };
+  }
+
+  return {
+    score,
+    applied: false,
+    tier: null,
+    cap: null,
+    warning: null
+  };
+}
+
 function buildReasons(signals, rpcSignals, marketSignals) {
   const authorityState = [];
   let holderLabel = "Top holders concentration (heuristic)";
@@ -654,7 +705,10 @@ function buildFallbackRiskAssessment(mint, warning) {
       liquidityUsd: null,
       volume24hUsd: null,
       tx24h: null,
-      scoreConfidence: "low"
+      scoreConfidence: "low",
+      scoreGuardrailApplied: false,
+      scoreGuardrailTier: null,
+      scoreGuardrailCap: null
     },
     rpcHealth: {
       tokenSupply: {
@@ -1117,6 +1171,9 @@ async function buildRiskAssessment(mint) {
     };
     let { score } = computeScoreBreakdown(signals);
     let scoreConfidence = "medium";
+    let scoreGuardrailApplied = false;
+    let scoreGuardrailTier = null;
+    let scoreGuardrailCap = null;
     if (rpcSignals.holderSource === "rpc" || rpcSignals.holderSource === "rpc-token-accounts-exact") {
       scoreConfidence = "high";
     } else if (rpcSignals.holderSource === "rpc-token-accounts-estimate") {
@@ -1145,6 +1202,16 @@ async function buildRiskAssessment(mint) {
       }
       scoreConfidence = "low";
     }
+
+    const guardrail = applyHolderConcentrationGuardrails(score, signals.holderConcentration);
+    if (guardrail.applied) {
+      score = guardrail.score;
+      scoreGuardrailApplied = true;
+      scoreGuardrailTier = guardrail.tier;
+      scoreGuardrailCap = guardrail.cap;
+      warnings.push(guardrail.warning);
+    }
+
     const reasons = buildReasons(signals, rpcSignals, marketSignals);
     const status = statusFromScoreAndConfidence(score, scoreConfidence);
     if (status !== scoreToStatus(score)) {
@@ -1176,6 +1243,9 @@ async function buildRiskAssessment(mint) {
           ? rpcSignals.holderPagesFetched
           : null,
         scoreConfidence,
+        scoreGuardrailApplied,
+        scoreGuardrailTier,
+        scoreGuardrailCap,
         marketPairCount: marketSignals.pairCount,
         liquidityUsd: marketSignals.totalLiquidityUsd,
         volume24hUsd: marketSignals.totalVolume24h,

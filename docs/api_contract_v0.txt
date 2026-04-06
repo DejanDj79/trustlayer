@@ -57,6 +57,9 @@ Response 200:
     "holderSampleCoveragePct": null,
     "holderPagesFetched": null,
     "scoreConfidence": "high",
+    "scoreGuardrailApplied": false,
+    "scoreGuardrailTier": null,
+    "scoreGuardrailCap": null,
     "marketPairCount": 19,
     "liquidityUsd": 12400000,
     "volume24hUsd": 45200000,
@@ -113,6 +116,9 @@ Response 200 (heuristic market fallback, when DexScreener fails):
     "holderSampleCoveragePct": null,
     "holderPagesFetched": null,
     "scoreConfidence": "low",
+    "scoreGuardrailApplied": false,
+    "scoreGuardrailTier": null,
+    "scoreGuardrailCap": null,
     "marketPairCount": null,
     "liquidityUsd": null,
     "volume24hUsd": null,
@@ -178,6 +184,9 @@ Response 200 (full fallback mode, when Solana RPC fails):
     "holderSampleCoveragePct": null,
     "holderPagesFetched": null,
     "scoreConfidence": "low",
+    "scoreGuardrailApplied": false,
+    "scoreGuardrailTier": null,
+    "scoreGuardrailCap": null,
     "marketPairCount": null,
     "liquidityUsd": null,
     "volume24hUsd": null,
@@ -232,3 +241,10 @@ Cache policy:
 - Configure via:
   - `SCORE_CACHE_TTL_MS` (set `0` to disable)
   - `SCORE_CACHE_MAX_ENTRIES`
+
+Holder concentration guardrails:
+- Additional score caps are applied when top-holder concentration is very high.
+- Guardrail output fields:
+  - `signalDetails.scoreGuardrailApplied`
+  - `signalDetails.scoreGuardrailTier` (`high` or `critical`)
+  - `signalDetails.scoreGuardrailCap`

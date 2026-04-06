@@ -58,6 +58,22 @@ cd /home/agar/trustlayer
 ./scripts/smoke_api.sh So11111111111111111111111111111111111111112 EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 ```
 
+## Golden benchmark (scoring tuning)
+
+Run baseline checks against `docs/golden_tokens_v1.csv`:
+
+```bash
+cd /home/agar/trustlayer
+./scripts/benchmark_golden_tokens.sh
+```
+
+Custom file:
+
+```bash
+cd /home/agar/trustlayer
+./scripts/benchmark_golden_tokens.sh /home/agar/trustlayer/docs/golden_tokens_v1.csv
+```
+
 ## Environment knobs
 
 Base RPC setup:
@@ -78,6 +94,10 @@ Holder-specific tuning:
 - `HOLDER_TOKEN_ACCOUNTS_MAX_PAGES`
 - `HOLDER_HEURISTIC_PENALTY`
 - `HOLDER_HEURISTIC_MAX_SCORE`
+- `HOLDER_HIGH_CONCENTRATION_PCT`
+- `HOLDER_CRITICAL_CONCENTRATION_PCT`
+- `HOLDER_HIGH_CONCENTRATION_SCORE_CAP`
+- `HOLDER_CRITICAL_CONCENTRATION_SCORE_CAP`
 
 Cache controls:
 
