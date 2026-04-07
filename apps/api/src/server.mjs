@@ -26,6 +26,13 @@ const RPC_HOLDER_BUDGET_MS = Number(process.env.RPC_HOLDER_BUDGET_MS || 20000);
 const SCORE_CACHE_TTL_MS = Number(process.env.SCORE_CACHE_TTL_MS || 45000);
 const SCORE_CACHE_MAX_ENTRIES = Number(process.env.SCORE_CACHE_MAX_ENTRIES || 200);
 const SCORE_CACHE_ENABLED = SCORE_CACHE_TTL_MS > 0 && SCORE_CACHE_MAX_ENTRIES > 0;
+const SCORE_HISTORY_DEFAULT_LIMIT = Number(process.env.SCORE_HISTORY_DEFAULT_LIMIT || 40);
+const SCORE_HISTORY_MAX_LIMIT = Number(process.env.SCORE_HISTORY_MAX_LIMIT || 200);
+const SCORE_HISTORY_MAX_POINTS_PER_MINT = Number(process.env.SCORE_HISTORY_MAX_POINTS_PER_MINT || 500);
+const SCORE_HISTORY_RETENTION_MS = Number(
+  process.env.SCORE_HISTORY_RETENTION_MS || 14 * 24 * 60 * 60 * 1000
+);
+const SCORE_HISTORY_MIN_INTERVAL_MS = Number(process.env.SCORE_HISTORY_MIN_INTERVAL_MS || 30000);
 const HOLDER_TOKEN_ACCOUNTS_FALLBACK_LIMIT = Number(
   process.env.HOLDER_TOKEN_ACCOUNTS_FALLBACK_LIMIT || 1000
 );
@@ -73,6 +80,7 @@ const TOKEN_LIST_FALLBACK_LOGO_BASE =
   "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet";
 const scoreCache = new Map();
 const scoreBuildInFlight = new Map();
+const scoreHistoryByMint = new Map();
 const topTokensCache = new Map();
 const tokenCatalogByMintCache = {
   entries: new Map(),
@@ -255,6 +263,98 @@ function withCacheMeta(assessment, cacheMeta) {
   };
 }
 
+function parseTimestampMs(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return Date.now();
+  }
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
+function pruneHistoryPoints(points, nowMs = Date.now()) {
+  if (!Array.isArray(points) || points.length === 0) {
+    return [];
+  }
+
+  const cutoffMs =
+    Number.isFinite(SCORE_HISTORY_RETENTION_MS) && SCORE_HISTORY_RETENTION_MS > 0
+      ? nowMs - SCORE_HISTORY_RETENTION_MS
+      : null;
+
+  let trimmed = points.filter((point) => {
+    const timestampMs = parseTimestampMs(point?.timestamp);
+    if (cutoffMs === null) {
+      return true;
+    }
+    return timestampMs >= cutoffMs;
+  });
+
+  if (trimmed.length > SCORE_HISTORY_MAX_POINTS_PER_MINT) {
+    trimmed = trimmed.slice(trimmed.length - SCORE_HISTORY_MAX_POINTS_PER_MINT);
+  }
+
+  return trimmed;
+}
+
+function recordScoreHistory(assessment, source = "unknown") {
+  const mint = String(assessment?.mint || "").trim();
+  if (!validateMint(mint)) {
+    return;
+  }
+
+  const score = Number(assessment?.score);
+  if (!Number.isFinite(score)) {
+    return;
+  }
+
+  const point = {
+    timestamp: String(assessment?.generatedAt || new Date().toISOString()),
+    score: Math.round(score),
+    status: String(assessment?.status || "unknown"),
+    scoreConfidence: String(assessment?.scoreConfidence || "unknown"),
+    dataSource: String(assessment?.dataSource || "unknown"),
+    source
+  };
+
+  const nowMs = parseTimestampMs(point.timestamp);
+  const existing = scoreHistoryByMint.get(mint) || [];
+  const history = pruneHistoryPoints(existing, nowMs);
+  const lastPoint = history[history.length - 1] || null;
+  if (lastPoint) {
+    const lastTsMs = parseTimestampMs(lastPoint.timestamp);
+    const isDuplicateWithinWindow =
+      Math.abs(nowMs - lastTsMs) < SCORE_HISTORY_MIN_INTERVAL_MS &&
+      Number(lastPoint.score) === point.score &&
+      String(lastPoint.status || "") === point.status &&
+      String(lastPoint.scoreConfidence || "") === point.scoreConfidence &&
+      String(lastPoint.dataSource || "") === point.dataSource;
+    if (isDuplicateWithinWindow) {
+      return;
+    }
+  }
+
+  history.push(point);
+  scoreHistoryByMint.set(mint, pruneHistoryPoints(history, nowMs));
+}
+
+function getScoreHistory(mint, limit) {
+  const normalizedMint = String(mint || "").trim();
+  const items = scoreHistoryByMint.get(normalizedMint) || [];
+  const pruned = pruneHistoryPoints(items, Date.now());
+  if (pruned !== items) {
+    scoreHistoryByMint.set(normalizedMint, pruned);
+  }
+  const normalizedLimit = normalizeHistoryLimit(limit);
+  const selected = pruned.slice(Math.max(0, pruned.length - normalizedLimit));
+  return {
+    mint: normalizedMint,
+    points: selected,
+    source: "in-memory",
+    retentionMs: SCORE_HISTORY_RETENTION_MS,
+    generatedAt: new Date().toISOString()
+  };
+}
+
 async function fetchJsonWithTimeout(url, timeoutMs, headers = {}) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -283,6 +383,15 @@ function normalizeTopTokensLimit(rawValue) {
     return Math.max(1, Math.min(fallback, TOP_TOKENS_MAX_LIMIT));
   }
   return Math.max(1, Math.min(Math.trunc(parsed), TOP_TOKENS_MAX_LIMIT));
+}
+
+function normalizeHistoryLimit(rawValue) {
+  const fallback = Number.isFinite(SCORE_HISTORY_DEFAULT_LIMIT) ? SCORE_HISTORY_DEFAULT_LIMIT : 40;
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Math.max(1, Math.min(fallback, SCORE_HISTORY_MAX_LIMIT));
+  }
+  return Math.max(1, Math.min(Math.trunc(parsed), SCORE_HISTORY_MAX_LIMIT));
 }
 
 function normalizeTokenSearchLimit(rawValue) {
@@ -1911,11 +2020,13 @@ async function buildRiskAssessment(mint) {
 async function buildRiskAssessmentCached(mint) {
   const cached = getCacheEntry(mint);
   if (cached) {
-    return withCacheMeta(cached.entry.assessment, {
+    const assessmentWithMeta = withCacheMeta(cached.entry.assessment, {
       hit: true,
       ageMs: cached.ageMs,
       ttlMs: SCORE_CACHE_TTL_MS
     });
+    recordScoreHistory(assessmentWithMeta, "cache-hit");
+    return assessmentWithMeta;
   }
 
   let inFlight = scoreBuildInFlight.get(mint);
@@ -1932,11 +2043,13 @@ async function buildRiskAssessmentCached(mint) {
   }
 
   const assessment = await inFlight;
-  return withCacheMeta(assessment, {
+  const assessmentWithMeta = withCacheMeta(assessment, {
     hit: false,
     ageMs: 0,
     ttlMs: SCORE_CACHE_TTL_MS
   });
+  recordScoreHistory(assessmentWithMeta, "fresh");
+  return assessmentWithMeta;
 }
 
 const server = http.createServer((req, res) => {
@@ -1954,6 +2067,11 @@ const server = http.createServer((req, res) => {
   const pathname = parsedUrl.pathname;
 
   if (req.method === "GET" && pathname === "/health") {
+    let historyPoints = 0;
+    for (const points of scoreHistoryByMint.values()) {
+      historyPoints += Array.isArray(points) ? points.length : 0;
+    }
+
     sendJson(res, 200, {
       status: "ok",
       service: "trustlayer-api",
@@ -1966,6 +2084,12 @@ const server = http.createServer((req, res) => {
         maxEntries: SCORE_CACHE_MAX_ENTRIES,
         entries: scoreCache.size,
         inFlightBuilds: scoreBuildInFlight.size
+      },
+      history: {
+        mintsTracked: scoreHistoryByMint.size,
+        points: historyPoints,
+        retentionMs: SCORE_HISTORY_RETENTION_MS,
+        maxPointsPerMint: SCORE_HISTORY_MAX_POINTS_PER_MINT
       }
     });
     return;
@@ -2016,6 +2140,21 @@ const server = http.createServer((req, res) => {
           details: error.message
         });
       });
+    return;
+  }
+
+  if (req.method === "GET" && pathname.startsWith("/v1/history/")) {
+    const mint = decodeURIComponent(pathname.replace("/v1/history/", "").trim());
+    if (!mint || !validateMint(mint)) {
+      sendJson(res, 400, {
+        error: "Invalid Solana mint address",
+        hint: "Use a base58 address with 32-44 chars"
+      });
+      return;
+    }
+    const requestedLimit = parsedUrl.searchParams.get("limit");
+    const history = getScoreHistory(mint, requestedLimit);
+    sendJson(res, 200, history);
     return;
   }
 

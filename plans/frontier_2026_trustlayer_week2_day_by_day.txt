@@ -5,8 +5,8 @@ STATUS SNAPSHOT (as of 05 Apr 2026)
 - [DONE] Day 8/9 tip posla je delimicno pokriven: liquidity + activity signali su vec u score-u.
 - [DONE] Day 12 smer je pokriven: external failure ne rusi API (graceful fallback + rpcHealth).
 - [IN PROGRESS] Reliability tuning i scoring quality calibration.
-- [TODO] History storage + `GET /v1/history/:mint`.
-- [TODO] History chart UI i observability stack (npr. Sentry).
+- [IN PROGRESS] History storage + `GET /v1/history/:mint` (endpoint radi, storage je in-memory MVP).
+- [IN PROGRESS] History chart UI i observability stack (history chart dodat; observability ostaje TODO).
 
 Goal of week 2:
 - Podici kvalitet score-a i uvesti istoriju + observability.

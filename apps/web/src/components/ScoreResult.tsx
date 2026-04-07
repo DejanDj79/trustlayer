@@ -1,5 +1,5 @@
 import { formatNumber, formatUsd, riskBandFromScore, riskLabelFromBand, statusClasses } from "../lib/format";
-import type { RpcHealthItem, ScoreResponse } from "../types";
+import type { RpcHealthItem, ScoreHistoryResponse, ScoreResponse } from "../types";
 
 function formatHolderSource(source: string | null | undefined): string {
   if (source === "rpc") {
@@ -30,9 +30,18 @@ function providersSummary(item: RpcHealthItem | undefined): string {
 interface ScoreResultProps {
   data: ScoreResponse;
   isLoading: boolean;
+  historyData?: ScoreHistoryResponse | null;
+  historyLoading?: boolean;
+  historyError?: string | null;
 }
 
-export function ScoreResult({ data, isLoading }: ScoreResultProps) {
+export function ScoreResult({
+  data,
+  isLoading,
+  historyData,
+  historyLoading = false,
+  historyError = null
+}: ScoreResultProps) {
   if (isLoading) {
     return (
       <section className="bg-transparent px-4 py-4">
@@ -54,6 +63,28 @@ export function ScoreResult({ data, isLoading }: ScoreResultProps) {
     { label: "24h Tx", value: formatNumber(details.tx24h) },
     { label: "Pools", value: formatNumber(details.marketPairCount) }
   ];
+  const historyPoints = Array.isArray(historyData?.points) ? historyData.points : [];
+  const sortedHistory = [...historyPoints].sort((a, b) => {
+    const aTs = Date.parse(a.timestamp || "");
+    const bTs = Date.parse(b.timestamp || "");
+    return aTs - bTs;
+  });
+  const latestHistory = sortedHistory[sortedHistory.length - 1] || null;
+  const previousHistory = sortedHistory[sortedHistory.length - 2] || null;
+  const scoreDelta =
+    latestHistory && previousHistory
+      ? Number(latestHistory.score || 0) - Number(previousHistory.score || 0)
+      : null;
+  const historyPolyline =
+    sortedHistory.length >= 2
+      ? sortedHistory
+          .map((point, index) => {
+            const x = (index / (sortedHistory.length - 1)) * 100;
+            const y = 100 - Math.max(0, Math.min(100, Number(point.score || 0)));
+            return `${x.toFixed(2)},${y.toFixed(2)}`;
+          })
+          .join(" ")
+      : "";
 
   return (
     <section className="grid gap-3">
@@ -106,6 +137,56 @@ export function ScoreResult({ data, isLoading }: ScoreResultProps) {
                   <p className="text-right text-sm font-bold text-tl-text">{item.value}</p>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-3 bg-black px-3 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-[11px] uppercase tracking-[0.06em] text-tl-muted">Score History</p>
+                {scoreDelta !== null ? (
+                  <p
+                    className={`text-xs font-bold ${
+                      scoreDelta > 0 ? "text-green-300" : scoreDelta < 0 ? "text-red-400" : "text-tl-muted"
+                    }`}
+                  >
+                    {scoreDelta > 0 ? "+" : ""}
+                    {Math.round(scoreDelta)}
+                  </p>
+                ) : null}
+              </div>
+
+              {historyLoading ? (
+                <p className="text-xs text-tl-muted">Loading history...</p>
+              ) : historyError ? (
+                <p className="text-xs text-red-400">{historyError}</p>
+              ) : sortedHistory.length < 2 ? (
+                <p className="text-xs text-tl-muted">Need at least 2 points to draw timeline.</p>
+              ) : (
+                <>
+                  <div className="h-24 w-full border border-tl-border bg-[#050505] px-2 py-2">
+                    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
+                      <polyline
+                        fill="none"
+                        stroke="#60a5fa"
+                        strokeWidth="2.2"
+                        vectorEffect="non-scaling-stroke"
+                        points={historyPolyline}
+                      />
+                    </svg>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-tl-muted">
+                    <span>{sortedHistory.length} points</span>
+                    <span>
+                      Latest:{" "}
+                      {latestHistory?.timestamp
+                        ? new Date(latestHistory.timestamp).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })
+                        : "n/a"}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -19,6 +19,8 @@ interface TopTokensTableProps {
   errorMessage: string | null;
   selectedMint: string | null;
   onAnalyzeToken: (mint: string) => void;
+  watchlistMints: Set<string>;
+  onToggleWatchlist: (token: TopToken) => void;
 }
 
 function TokenLogo({ token }: { token: TopToken }) {
@@ -56,6 +58,23 @@ function LoadingSpinner() {
   );
 }
 
+function FavoriteStarIcon({ active }: { active: boolean }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      className="h-4 w-4"
+      fill={active ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 3.75l2.5 5.06 5.58.81-4.04 3.94.95 5.56L12 16.5 7.01 19.12l.95-5.56-4.04-3.94 5.58-.81L12 3.75z" />
+    </svg>
+  );
+}
+
 function RiskBadge({ risk }: { risk: TokenRiskState | undefined }) {
   if (!risk || risk.state === "pending") {
     return <span className="text-xs text-tl-muted">...</span>;
@@ -73,7 +92,18 @@ function RiskBadge({ risk }: { risk: TokenRiskState | undefined }) {
 }
 
 export function TopTokensTable(props: TopTokensTableProps) {
-  const { tokens, risks, isLoading, source, fallbackMode, errorMessage, selectedMint, onAnalyzeToken } = props;
+  const {
+    tokens,
+    risks,
+    isLoading,
+    source,
+    fallbackMode,
+    errorMessage,
+    selectedMint,
+    onAnalyzeToken,
+    watchlistMints,
+    onToggleWatchlist
+  } = props;
 
   return (
     <section className="-mx-4 bg-transparent py-4">
@@ -131,6 +161,7 @@ export function TopTokensTable(props: TopTokensTableProps) {
                 const change = token.change24hPct;
                 const risk = risks[token.mint];
                 const isSelected = selectedMint === token.mint;
+                const inWatchlist = watchlistMints.has(token.mint);
 
                 return (
                   <tr
@@ -170,16 +201,34 @@ export function TopTokensTable(props: TopTokensTableProps) {
                       <RiskBadge risk={risk} />
                     </td>
                     <td className="px-2 py-2">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onAnalyzeToken(token.mint);
-                        }}
-                        className="border border-tl-border bg-blue-950/60 px-3 py-1 text-xs font-bold text-blue-200 transition-colors duration-150 hover:bg-blue-900/70"
-                      >
-                        Analyze
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onAnalyzeToken(token.mint);
+                          }}
+                          className="border border-tl-border bg-blue-950/60 px-3 py-1 text-xs font-bold text-blue-200 transition-colors duration-150 hover:bg-blue-900/70"
+                        >
+                          Analyze
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onToggleWatchlist(token);
+                          }}
+                          aria-label={inWatchlist ? "Remove from favorites" : "Add to favorites"}
+                          title={inWatchlist ? "Remove from favorites" : "Add to favorites"}
+                          className={`grid h-7 w-7 place-items-center border transition-colors duration-150 ${
+                            inWatchlist
+                              ? "border-amber-500/40 bg-amber-950/40 text-amber-300 hover:text-amber-200"
+                              : "border-tl-border bg-black text-zinc-500 hover:text-zinc-200"
+                          }`}
+                        >
+                          <FavoriteStarIcon active={inWatchlist} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

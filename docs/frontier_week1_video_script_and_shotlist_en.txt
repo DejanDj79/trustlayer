@@ -1,0 +1,110 @@
+Frontier Hackathon - Week 1 Video
+Project: TrustLayer
+Format: Screen-only demo (no face camera)
+Target length: 60-75 seconds
+
+==================================================
+1) Voiceover Script (Detailed, Natural, Week 1)
+==================================================
+
+Hi everyone, this is our Week 1 update for TrustLayer.
+
+TrustLayer is a Solana token risk intelligence app that helps users quickly evaluate token trust signals before making decisions.
+
+In this first checkpoint, we completed the core MVP ahead of schedule.
+Users can paste a mint address or search by token name, run analysis, and instantly get a risk score with confidence and signal breakdown.
+
+On the left side, we provide a live top-token market table with risk values.
+From that table, users can open analysis in one click and add tokens to a favorites watchlist.
+
+On the right side, we show detailed diagnostics:
+score status, confidence level, signal details, warnings, and score history context.
+This makes the result transparent instead of just showing a single number.
+
+We also implemented watchlist monitoring with alert events.
+If a watched token’s risk score changes significantly between checks, users get an alert entry.
+Users can now mute or snooze alerts per token to reduce noise.
+
+On the backend, we integrated Solana RPC with fallback logic and market data sources to keep scoring resilient even when some endpoints are slow or limited.
+
+So by the end of Week 1, TrustLayer already supports analysis, watchlist tracking, and alert-based monitoring in one workflow.
+
+Next week, we will focus on better explainability, stronger alert controls, and reliability hardening for final demo quality.
+
+Thanks for watching, see you in Week 2.
+
+
+==================================================
+2) Shot List (What to Record on Screen)
+==================================================
+
+Timeline Guide (about 70 sec total):
+
+00:00 - 00:05
+Shot: Open app home screen, steady wide view.
+Action: Show full layout (header, table, analyzer, right panel).
+Overlay text (optional): "TrustLayer - Week 1 Checkpoint"
+
+00:05 - 00:15
+Shot: Analyzer usage.
+Action: Click mint input, paste a mint OR type token name from suggestions, click Analyze.
+Capture: Loading state -> result appears.
+Overlay text (optional): "Mint + name search, instant risk analysis"
+
+00:15 - 00:25
+Shot: Top tokens table interaction.
+Action: Hover table rows, click one token to analyze from table.
+Capture: Row selection + right panel update.
+Overlay text (optional): "Live top-token view with quick analyze"
+
+00:25 - 00:37
+Shot: Score result panel.
+Action: Scroll slightly in right panel and highlight:
+- score %
+- risk label
+- confidence
+- signal/rpc sections
+Overlay text (optional): "Transparent score diagnostics"
+
+00:37 - 00:50
+Shot: Watchlist + favorites flow.
+Action: Click star/favorite in table, open watchlist collapse, show token added.
+Then click another token in watchlist to run analysis.
+Overlay text (optional): "Watchlist tracking workflow"
+
+00:50 - 01:02
+Shot: Alerts flow.
+Action: Show "Recent alerts" section, then show Mute / Snooze controls on a token.
+Overlay text (optional): "Alert events + per-token mute/snooze"
+
+01:02 - 01:10
+Shot: End frame.
+Action: Return to full app view and keep still.
+Overlay text (optional):
+"Week 1 done: Core MVP complete"
+"Next: Explainability + reliability"
+
+
+==================================================
+3) Recording Checklist (Before You Press Record)
+==================================================
+
+- Use browser zoom 100% and full-screen app window.
+- Close unrelated tabs/notifications.
+- Prepare 2-3 mint addresses in a text file for fast copy-paste.
+- Keep mouse movement slow and intentional.
+- Do 2 takes:
+  - Take A: natural interaction
+  - Take B: slower backup take
+
+
+==================================================
+4) Editing Notes (Fast)
+==================================================
+
+- Keep cuts clean; no fancy transitions needed.
+- Add short captions from the overlay suggestions above.
+- Background music optional, very low volume.
+- Export 1080p, 30fps.
+- Final length: 60-75 sec.
+

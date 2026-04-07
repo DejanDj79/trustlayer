@@ -12,6 +12,7 @@ TrustLayer is a Solana token risk scoring MVP for hackathon demos.
 - API (`apps/api`) with:
   - `GET /health`
   - `GET /v1/score/:mint`
+  - `GET /v1/history/:mint?limit=40` (in-memory score timeline by mint)
   - `GET /v1/top-tokens?limit=20` (CoinGecko-backed market list + fallback + logo enrichment)
   - multi-RPC failover and provider diagnostics
   - holder concentration fallback logic
@@ -111,6 +112,14 @@ Cache controls:
 
 - `SCORE_CACHE_TTL_MS` (default `45000`, set `0` to disable)
 - `SCORE_CACHE_MAX_ENTRIES` (default `200`)
+
+History controls:
+
+- `SCORE_HISTORY_DEFAULT_LIMIT`
+- `SCORE_HISTORY_MAX_LIMIT`
+- `SCORE_HISTORY_MAX_POINTS_PER_MINT`
+- `SCORE_HISTORY_RETENTION_MS`
+- `SCORE_HISTORY_MIN_INTERVAL_MS`
 
 Market source:
 

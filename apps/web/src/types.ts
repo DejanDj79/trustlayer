@@ -89,8 +89,50 @@ export interface TokenSearchResponse {
   generatedAt?: string;
 }
 
+export interface WatchlistItem {
+  mint: string;
+  symbol?: string | null;
+  name?: string | null;
+  imageUrl?: string | null;
+  addedAt?: string;
+}
+
+export interface ScoreHistoryPoint {
+  timestamp: string;
+  score: number;
+  status: RiskStatus;
+  scoreConfidence?: ScoreConfidence;
+  dataSource?: string;
+  source?: string;
+}
+
+export interface ScoreHistoryResponse {
+  mint: string;
+  points: ScoreHistoryPoint[];
+  source?: string;
+  retentionMs?: number;
+  generatedAt?: string;
+}
+
 export interface TokenRiskState {
   state: "pending" | "ready" | "error";
   score?: number;
   status?: RiskStatus;
+}
+
+export interface WatchlistAlertEvent {
+  id: string;
+  mint: string;
+  symbol?: string | null;
+  name?: string | null;
+  previousScore: number;
+  nextScore: number;
+  delta: number;
+  status?: RiskStatus;
+  createdAt: string;
+}
+
+export interface WatchlistAlertPreference {
+  muted?: boolean;
+  snoozedUntil?: string | null;
 }
