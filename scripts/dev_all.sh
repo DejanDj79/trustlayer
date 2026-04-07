@@ -22,7 +22,7 @@ echo "[trustlayer] starting api on ${API_HOST}:${API_PORT}"
 API_PID=$!
 
 echo "[trustlayer] starting web on ${WEB_BIND_HOST}:${WEB_BIND_PORT}"
-(cd "$ROOT_DIR/apps/web" && HOST="$WEB_BIND_HOST" PORT="$WEB_BIND_PORT" node dev-server.mjs) &
+(cd "$ROOT_DIR/apps/web" && VITE_API_BASE="http://${API_HOST}:${API_PORT}" npm run dev -- --host "$WEB_BIND_HOST" --port "$WEB_BIND_PORT") &
 WEB_PID=$!
 
 cleanup() {

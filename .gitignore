@@ -1,3 +1,4 @@
 node_modules/
+apps/web/dist/
 .env
 .DS_Store

@@ -2,12 +2,17 @@
 
 TrustLayer is a Solana token risk scoring MVP for hackathon demos.
 
+## Tech stack
+
+- API: Node.js (ESM)
+- Web: React + TypeScript + Tailwind CSS (Vite)
+
 ## Current scope
 
 - API (`apps/api`) with:
   - `GET /health`
   - `GET /v1/score/:mint`
-  - `GET /v1/top-tokens?limit=20` (CoinGecko-backed market list + fallback)
+  - `GET /v1/top-tokens?limit=20` (CoinGecko-backed market list + fallback + logo enrichment)
   - multi-RPC failover and provider diagnostics
   - holder concentration fallback logic
   - confidence-aware status policy (`green` only with `high` confidence)
@@ -24,6 +29,7 @@ TrustLayer is a Solana token risk scoring MVP for hackathon demos.
 
 ```bash
 cd /home/agar/trustlayer
+npm install
 npm run dev:api
 ```
 
@@ -110,6 +116,20 @@ Market source:
 
 - `DEXSCREENER_API_BASE`
 - `MARKET_TIMEOUT_MS`
+- `COINGECKO_API_BASE`
+- `TOP_TOKENS_DEFAULT_LIMIT`
+- `TOP_TOKENS_MAX_LIMIT`
+- `TOP_TOKENS_MARKETS_FETCH_SIZE`
+- `TOP_TOKENS_CACHE_TTL_MS`
+- `TOP_TOKENS_TIMEOUT_MS`
+- `JUPITER_TOKEN_LIST_URL`
+- `JUPITER_TOKEN_LIST_TIMEOUT_MS`
+- `JUPITER_TOKEN_LIST_CACHE_TTL_MS`
+- `TOKEN_LIST_FALLBACK_LOGO_BASE`
+
+Web:
+
+- `VITE_API_BASE` (default `http://127.0.0.1:8787`)
 
 ## Demo runbook (3-5 min)
 
@@ -127,4 +147,3 @@ Market source:
 - No on-chain program yet (API-only scoring service in this phase).
 - Some RPC providers return limited/unavailable data for `getTokenLargestAccounts`.
 - Token-account fallback can be slower than direct largest-holders RPC.
-- Web app is currently vanilla JS (React + TypeScript migration planned in next phase).

@@ -52,6 +52,8 @@ const HOLDER_CRITICAL_CONCENTRATION_SCORE_CAP = Number(
 );
 const DEXSCREENER_API_BASE =
   process.env.DEXSCREENER_API_BASE || "https://api.dexscreener.com/latest/dex/tokens";
+const DEXSCREENER_SEARCH_API_BASE =
+  process.env.DEXSCREENER_SEARCH_API_BASE || "https://api.dexscreener.com/latest/dex/search";
 const MARKET_TIMEOUT_MS = Number(process.env.MARKET_TIMEOUT_MS || 5000);
 const COINGECKO_API_BASE = process.env.COINGECKO_API_BASE || "https://api.coingecko.com/api/v3";
 const TOP_TOKENS_DEFAULT_LIMIT = Number(process.env.TOP_TOKENS_DEFAULT_LIMIT || 20);
@@ -59,9 +61,23 @@ const TOP_TOKENS_MAX_LIMIT = Number(process.env.TOP_TOKENS_MAX_LIMIT || 30);
 const TOP_TOKENS_MARKETS_FETCH_SIZE = Number(process.env.TOP_TOKENS_MARKETS_FETCH_SIZE || 80);
 const TOP_TOKENS_CACHE_TTL_MS = Number(process.env.TOP_TOKENS_CACHE_TTL_MS || 300000);
 const TOP_TOKENS_TIMEOUT_MS = Number(process.env.TOP_TOKENS_TIMEOUT_MS || 10000);
+const TOKEN_SEARCH_DEFAULT_LIMIT = Number(process.env.TOKEN_SEARCH_DEFAULT_LIMIT || 8);
+const TOKEN_SEARCH_MAX_LIMIT = Number(process.env.TOKEN_SEARCH_MAX_LIMIT || 20);
+const JUPITER_TOKEN_LIST_URL = process.env.JUPITER_TOKEN_LIST_URL || "https://token.jup.ag/strict";
+const JUPITER_TOKEN_LIST_TIMEOUT_MS = Number(process.env.JUPITER_TOKEN_LIST_TIMEOUT_MS || 7000);
+const JUPITER_TOKEN_LIST_CACHE_TTL_MS = Number(
+  process.env.JUPITER_TOKEN_LIST_CACHE_TTL_MS || 21600000
+);
+const TOKEN_LIST_FALLBACK_LOGO_BASE =
+  process.env.TOKEN_LIST_FALLBACK_LOGO_BASE ||
+  "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet";
 const scoreCache = new Map();
 const scoreBuildInFlight = new Map();
 const topTokensCache = new Map();
+const tokenCatalogByMintCache = {
+  entries: new Map(),
+  cachedAt: 0
+};
 const TOP_SOLANA_TOKENS_FALLBACK = [
   {
     rank: 1,
@@ -71,7 +87,8 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
-    imageUrl: null
+    imageUrl:
+      "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png"
   },
   {
     rank: 2,
@@ -81,7 +98,8 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
-    imageUrl: null
+    imageUrl:
+      "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png"
   },
   {
     rank: 3,
@@ -91,7 +109,8 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
-    imageUrl: null
+    imageUrl:
+      "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png"
   },
   {
     rank: 4,
@@ -101,7 +120,8 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
-    imageUrl: null
+    imageUrl:
+      "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN/logo.png"
   }
 ];
 
@@ -263,6 +283,288 @@ function normalizeTopTokensLimit(rawValue) {
     return Math.max(1, Math.min(fallback, TOP_TOKENS_MAX_LIMIT));
   }
   return Math.max(1, Math.min(Math.trunc(parsed), TOP_TOKENS_MAX_LIMIT));
+}
+
+function normalizeTokenSearchLimit(rawValue) {
+  const fallback = Number.isFinite(TOKEN_SEARCH_DEFAULT_LIMIT) ? TOKEN_SEARCH_DEFAULT_LIMIT : 8;
+  const parsed = Number(rawValue);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return Math.max(1, Math.min(fallback, TOKEN_SEARCH_MAX_LIMIT));
+  }
+  return Math.max(1, Math.min(Math.trunc(parsed), TOKEN_SEARCH_MAX_LIMIT));
+}
+
+function normalizeSearchText(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/j/g, "y");
+}
+
+function normalizeHttpUrl(value) {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      return null;
+    }
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+function buildTokenListFallbackLogoUrl(mint) {
+  if (!validateMint(mint)) {
+    return null;
+  }
+  const base = TOKEN_LIST_FALLBACK_LOGO_BASE.replace(/\/+$/, "");
+  return `${base}/${mint}/logo.png`;
+}
+
+async function fetchTokenCatalogByMint() {
+  const now = Date.now();
+  const ageMs = now - tokenCatalogByMintCache.cachedAt;
+  if (tokenCatalogByMintCache.cachedAt > 0 && ageMs < JUPITER_TOKEN_LIST_CACHE_TTL_MS) {
+    return tokenCatalogByMintCache.entries;
+  }
+
+  try {
+    const payload = await fetchJsonWithTimeout(JUPITER_TOKEN_LIST_URL, JUPITER_TOKEN_LIST_TIMEOUT_MS);
+    const items = Array.isArray(payload) ? payload : Array.isArray(payload?.tokens) ? payload.tokens : [];
+    const entries = new Map();
+    for (const item of items) {
+      const mint = String(item?.address || item?.mint || "").trim();
+      if (!validateMint(mint)) {
+        continue;
+      }
+      const symbolRaw = String(item?.symbol || "").trim();
+      const nameRaw = String(item?.name || "").trim();
+      const logoUrl = normalizeHttpUrl(item?.logoURI || item?.logoUrl || item?.image);
+      entries.set(mint, {
+        symbol: symbolRaw ? symbolRaw.toUpperCase() : null,
+        name: nameRaw || null,
+        imageUrl: logoUrl || buildTokenListFallbackLogoUrl(mint) || null
+      });
+    }
+    if (entries.size > 0) {
+      tokenCatalogByMintCache.entries = entries;
+      tokenCatalogByMintCache.cachedAt = Date.now();
+    }
+  } catch {
+    if (tokenCatalogByMintCache.cachedAt === 0) {
+      tokenCatalogByMintCache.cachedAt = Date.now();
+    }
+  }
+
+  return tokenCatalogByMintCache.entries;
+}
+
+async function fetchTokenLogosByMint() {
+  const catalogByMint = await fetchTokenCatalogByMint();
+  const logosByMint = new Map();
+  for (const [mint, meta] of catalogByMint.entries()) {
+    const imageUrl = normalizeHttpUrl(meta?.imageUrl);
+    if (!imageUrl) {
+      continue;
+    }
+    logosByMint.set(mint, imageUrl);
+  }
+  return logosByMint;
+}
+
+async function fetchTokenProfileByMint(mint) {
+  const normalizedMint = String(mint || "").trim();
+  if (!validateMint(normalizedMint)) {
+    return null;
+  }
+  const catalogByMint = await fetchTokenCatalogByMint();
+  const metadata = catalogByMint.get(normalizedMint) || null;
+  let source = metadata ? "jupiter-token-list" : "fallback-logo";
+  let symbol = metadata?.symbol || null;
+  let name = metadata?.name || null;
+  let imageUrl = normalizeHttpUrl(metadata?.imageUrl) || null;
+
+  if (!symbol || !name || !imageUrl) {
+    try {
+      const dexscreenerProfile = await fetchDexScreenerTokenProfile(normalizedMint);
+      if (dexscreenerProfile) {
+        symbol = symbol || dexscreenerProfile.symbol || null;
+        name = name || dexscreenerProfile.name || null;
+        imageUrl = imageUrl || normalizeHttpUrl(dexscreenerProfile.imageUrl) || null;
+        source = metadata ? "jupiter-token-list+dexscreener" : "dexscreener";
+      }
+    } catch {
+      // Best-effort fallback only.
+    }
+  }
+
+  return {
+    mint: normalizedMint,
+    symbol: symbol || null,
+    name: name || null,
+    imageUrl: imageUrl || buildTokenListFallbackLogoUrl(normalizedMint) || null,
+    source,
+    generatedAt: new Date().toISOString()
+  };
+}
+
+function scoreTokenSearchMatch(query, queryRawLower, token) {
+  const symbol = normalizeSearchText(token?.symbol || "");
+  const name = normalizeSearchText(token?.name || "");
+  const mint = String(token?.mint || "").trim().toLowerCase();
+
+  if (!query) {
+    return 0;
+  }
+
+  let score = 0;
+  if (symbol && symbol === query) {
+    score = Math.max(score, 120);
+  }
+  if (name && name === query) {
+    score = Math.max(score, 115);
+  }
+  if (symbol && symbol.startsWith(query)) {
+    score = Math.max(score, 105);
+  }
+  if (name && name.startsWith(query)) {
+    score = Math.max(score, 100);
+  }
+  if (symbol && symbol.includes(query)) {
+    score = Math.max(score, 90);
+  }
+  if (name && name.includes(query)) {
+    score = Math.max(score, 85);
+  }
+  if (mint && mint.startsWith(queryRawLower)) {
+    score = Math.max(score, 75);
+  } else if (mint && mint.includes(queryRawLower)) {
+    score = Math.max(score, 70);
+  }
+
+  if (score > 0 && name) {
+    score += Math.max(0, 12 - Math.floor(name.length / 6));
+  }
+
+  return score;
+}
+
+async function searchTokenCatalog(query, limit) {
+  const normalizedQueryRaw = String(query || "").trim();
+  const normalizedQuery = normalizeSearchText(normalizedQueryRaw);
+  if (!normalizedQuery) {
+    return {
+      tokens: [],
+      source: "jupiter-token-list"
+    };
+  }
+
+  const queryRawLower = normalizedQueryRaw.toLowerCase();
+  const catalogByMint = await fetchTokenCatalogByMint();
+  const matches = [];
+  let source = "jupiter-token-list";
+
+  for (const [mint, metadata] of catalogByMint.entries()) {
+    const candidate = {
+      mint,
+      symbol: metadata?.symbol || null,
+      name: metadata?.name || null,
+      imageUrl:
+        normalizeHttpUrl(metadata?.imageUrl) || buildTokenListFallbackLogoUrl(mint) || null
+    };
+    const score = scoreTokenSearchMatch(normalizedQuery, queryRawLower, candidate);
+    if (score <= 0) {
+      continue;
+    }
+    matches.push({
+      score,
+      token: candidate
+    });
+  }
+
+  if (matches.length === 0) {
+    for (const token of TOP_SOLANA_TOKENS_FALLBACK) {
+      const candidate = {
+        mint: token.mint,
+        symbol: token.symbol || null,
+        name: token.name || null,
+        imageUrl: token.imageUrl || buildTokenListFallbackLogoUrl(token.mint) || null
+      };
+      const score = scoreTokenSearchMatch(normalizedQuery, queryRawLower, candidate);
+      if (score <= 0) {
+        continue;
+      }
+      matches.push({ score, token: candidate });
+    }
+  }
+
+  if (matches.length < limit) {
+    try {
+      const dexCandidates = await fetchDexScreenerSearchCandidates(normalizedQueryRaw, limit);
+      for (const candidate of dexCandidates) {
+        const score = scoreTokenSearchMatch(normalizedQuery, queryRawLower, candidate);
+        if (score <= 0) {
+          continue;
+        }
+        matches.push({ score, token: candidate });
+      }
+      if (dexCandidates.length > 0) {
+        source = "jupiter-token-list+dexscreener-search";
+      }
+    } catch {
+      // Keep best-effort list from cached token catalog only.
+    }
+  }
+
+  matches.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    const aName = String(a.token.name || a.token.symbol || a.token.mint).toLowerCase();
+    const bName = String(b.token.name || b.token.symbol || b.token.mint).toLowerCase();
+    return aName.localeCompare(bName);
+  });
+
+  const deduped = [];
+  const seen = new Set();
+  for (const match of matches) {
+    const mint = String(match?.token?.mint || "").trim();
+    if (!mint || seen.has(mint)) {
+      continue;
+    }
+    seen.add(mint);
+    deduped.push(match.token);
+    if (deduped.length >= limit) {
+      break;
+    }
+  }
+
+  return {
+    tokens: deduped,
+    source
+  };
+}
+
+function enrichTokensWithImageUrls(tokens, logoByMint) {
+  return (Array.isArray(tokens) ? tokens : []).map((token) => {
+    const mint = String(token?.mint || "").trim();
+    const marketImage = normalizeHttpUrl(token?.imageUrl);
+    const mappedImage = normalizeHttpUrl(logoByMint?.get(mint));
+    const fallbackImage = buildTokenListFallbackLogoUrl(mint);
+    return {
+      ...token,
+      imageUrl: marketImage || mappedImage || fallbackImage || null
+    };
+  });
 }
 
 function buildTopTokensResponse(tokens, source, warnings, cacheMeta) {
@@ -1055,14 +1357,147 @@ async function fetchDexScreenerSignals(mint) {
   }
 }
 
+async function fetchDexScreenerTokenProfile(mint) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MARKET_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${DEXSCREENER_API_BASE}/${mint}`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`DexScreener HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const allPairs = Array.isArray(payload?.pairs) ? payload.pairs : [];
+    const solanaPairs = allPairs.filter((pair) => pair?.chainId === "solana");
+    if (solanaPairs.length === 0) {
+      return null;
+    }
+
+    const normalizedMint = String(mint || "").trim();
+    const byLiquidityDesc = [...solanaPairs].sort((a, b) => {
+      const liquidityA = Number(a?.liquidity?.usd || 0);
+      const liquidityB = Number(b?.liquidity?.usd || 0);
+      return liquidityB - liquidityA;
+    });
+
+    for (const pair of byLiquidityDesc) {
+      const baseAddress = String(pair?.baseToken?.address || "").trim();
+      const quoteAddress = String(pair?.quoteToken?.address || "").trim();
+      let matchedToken = null;
+
+      if (baseAddress === normalizedMint) {
+        matchedToken = pair?.baseToken || null;
+      } else if (quoteAddress === normalizedMint) {
+        matchedToken = pair?.quoteToken || null;
+      } else {
+        continue;
+      }
+
+      const symbolRaw = String(matchedToken?.symbol || "").trim();
+      const nameRaw = String(matchedToken?.name || "").trim();
+      const imageUrl =
+        normalizeHttpUrl(pair?.info?.imageUrl || pair?.info?.openGraph) ||
+        buildTokenListFallbackLogoUrl(normalizedMint);
+      if (!symbolRaw && !nameRaw && !imageUrl) {
+        continue;
+      }
+
+      return {
+        symbol: symbolRaw ? symbolRaw.toUpperCase() : null,
+        name: nameRaw || null,
+        imageUrl: imageUrl || null
+      };
+    }
+
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchDexScreenerSearchCandidates(query, limit) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), MARKET_TIMEOUT_MS);
+  try {
+    const url = new URL(DEXSCREENER_SEARCH_API_BASE);
+    url.searchParams.set("q", String(query || "").trim());
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error(`DexScreener search HTTP ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const allPairs = Array.isArray(payload?.pairs) ? payload.pairs : [];
+    const solanaPairs = allPairs.filter((pair) => pair?.chainId === "solana");
+    if (solanaPairs.length === 0) {
+      return [];
+    }
+
+    const byLiquidityDesc = [...solanaPairs].sort((a, b) => {
+      const liquidityA = Number(a?.liquidity?.usd || 0);
+      const liquidityB = Number(b?.liquidity?.usd || 0);
+      return liquidityB - liquidityA;
+    });
+
+    const candidatesByMint = new Map();
+    const hardLimit = Math.max(limit * 4, limit);
+    for (const pair of byLiquidityDesc) {
+      const pairImage =
+        normalizeHttpUrl(pair?.info?.imageUrl || pair?.info?.openGraph) || null;
+      for (const tokenInfo of [pair?.baseToken, pair?.quoteToken]) {
+        const mint = String(tokenInfo?.address || "").trim();
+        if (!validateMint(mint) || candidatesByMint.has(mint)) {
+          continue;
+        }
+        candidatesByMint.set(mint, {
+          mint,
+          symbol: String(tokenInfo?.symbol || "").trim().toUpperCase() || null,
+          name: String(tokenInfo?.name || "").trim() || null,
+          imageUrl: pairImage || buildTokenListFallbackLogoUrl(mint) || null
+        });
+        if (candidatesByMint.size >= hardLimit) {
+          break;
+        }
+      }
+      if (candidatesByMint.size >= hardLimit) {
+        break;
+      }
+    }
+
+    return Array.from(candidatesByMint.values());
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 async function fetchTopSolanaTokens(limit) {
   const normalizedLimit = normalizeTopTokensLimit(limit);
   const cacheKey = String(normalizedLimit);
   const cached = topTokensCache.get(cacheKey);
   const now = Date.now();
+  const tokenLogosByMint = await fetchTokenLogosByMint();
 
   if (cached && now - cached.cachedAt < TOP_TOKENS_CACHE_TTL_MS) {
-    return buildTopTokensResponse(cached.tokens, cached.source, cached.warnings, {
+    const tokensWithImages = enrichTokensWithImageUrls(cached.tokens, tokenLogosByMint);
+    topTokensCache.set(cacheKey, {
+      ...cached,
+      tokens: tokensWithImages
+    });
+    return buildTopTokensResponse(tokensWithImages, cached.source, cached.warnings, {
       hit: true,
       ageMs: now - cached.cachedAt,
       ttlMs: TOP_TOKENS_CACHE_TTL_MS
@@ -1130,14 +1565,15 @@ async function fetchTopSolanaTokens(limit) {
       throw new Error("No top tokens with valid Solana mints returned from CoinGecko.");
     }
 
+    const tokensWithImages = enrichTokensWithImageUrls(tokens, tokenLogosByMint);
     topTokensCache.set(cacheKey, {
-      tokens,
+      tokens: tokensWithImages,
       source: "coingecko",
       warnings: [],
       cachedAt: Date.now()
     });
 
-    return buildTopTokensResponse(tokens, "coingecko", [], {
+    return buildTopTokensResponse(tokensWithImages, "coingecko", [], {
       hit: false,
       ageMs: 0,
       ttlMs: TOP_TOKENS_CACHE_TTL_MS
@@ -1145,13 +1581,19 @@ async function fetchTopSolanaTokens(limit) {
   } catch (error) {
     const warning = `Using fallback top tokens list because external market feed failed: ${error.message}`;
     const fallback = buildFallbackTopTokens(normalizedLimit, warning);
+    const fallbackTokensWithImages = enrichTokensWithImageUrls(fallback.tokens, tokenLogosByMint);
     topTokensCache.set(cacheKey, {
-      tokens: fallback.tokens,
+      tokens: fallbackTokensWithImages,
       source: fallback.source,
       warnings: fallback.warnings,
       cachedAt: Date.now()
     });
-    return fallback;
+    return buildTopTokensResponse(
+      fallbackTokensWithImages,
+      fallback.source,
+      fallback.warnings,
+      fallback.cache
+    );
   }
 }
 
@@ -1545,6 +1987,38 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === "GET" && pathname === "/v1/token-search") {
+    const query = String(parsedUrl.searchParams.get("q") || "").trim();
+    const requestedLimit = parsedUrl.searchParams.get("limit");
+    const limit = normalizeTokenSearchLimit(requestedLimit);
+    if (!query) {
+      sendJson(res, 200, {
+        query,
+        tokens: [],
+        source: "jupiter-token-list",
+        generatedAt: new Date().toISOString()
+      });
+      return;
+    }
+
+    searchTokenCatalog(query, limit)
+      .then((result) => {
+        sendJson(res, 200, {
+          query,
+          tokens: result.tokens,
+          source: result.source,
+          generatedAt: new Date().toISOString()
+        });
+      })
+      .catch((error) => {
+        sendJson(res, 500, {
+          error: "Failed to search tokens",
+          details: error.message
+        });
+      });
+    return;
+  }
+
   if (req.method === "GET" && pathname.startsWith("/v1/score/")) {
     const mint = decodeURIComponent(pathname.replace("/v1/score/", "").trim());
     if (!mint || !validateMint(mint)) {
@@ -1561,6 +2035,28 @@ const server = http.createServer((req, res) => {
       .catch((error) => {
         sendJson(res, 500, {
           error: "Failed to build score",
+          details: error.message
+        });
+      });
+    return;
+  }
+
+  if (req.method === "GET" && pathname.startsWith("/v1/token/")) {
+    const mint = decodeURIComponent(pathname.replace("/v1/token/", "").trim());
+    if (!mint || !validateMint(mint)) {
+      sendJson(res, 400, {
+        error: "Invalid Solana mint address",
+        hint: "Use a base58 address with 32-44 chars"
+      });
+      return;
+    }
+    fetchTokenProfileByMint(mint)
+      .then((tokenProfile) => {
+        sendJson(res, 200, tokenProfile || { mint, symbol: null, name: null, imageUrl: null });
+      })
+      .catch((error) => {
+        sendJson(res, 500, {
+          error: "Failed to load token profile",
           details: error.message
         });
       });
