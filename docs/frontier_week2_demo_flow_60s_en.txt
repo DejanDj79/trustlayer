@@ -1,0 +1,56 @@
+TrustLayer - Week 2 Demo Flow (60 Seconds)
+Format: Screen-only
+
+==================================================
+Goal
+==================================================
+
+Show Week 2 in one minute:
+1) Clear explainability (not only a score number)
+2) Reliable watchlist monitoring controls
+3) Improved loading/readability UX
+
+==================================================
+Exact Click Flow
+==================================================
+
+00:00 - 00:07
+- Open app home.
+- Keep full layout visible.
+- If available in this run, briefly show top-table skeleton -> row reveal.
+
+00:07 - 00:17
+- Click one token from top table.
+- Wait for right panel to load.
+- Keep score, risk, and confidence visible.
+
+00:17 - 00:28
+- Scroll to "Why Score Changed".
+- Hold 2-3 seconds so delta + transition text is readable.
+
+00:28 - 00:38
+- In Score History, switch 24h -> 7d -> 24h.
+- Keep graph and point count in frame while toggling.
+
+00:38 - 00:50
+- Open Favorites watchlist.
+- Show threshold switch (example: 10 -> 5).
+- Click "Check now" and capture:
+  - button changes to "Checking..."
+  - "Last check completed at ..." status.
+
+00:50 - 00:57
+- Show Alerts filter All -> Critical.
+- If no critical alerts, keep empty-state message briefly.
+
+00:57 - 01:00
+- Return to full panel view and hold steady end frame.
+
+==================================================
+Voiceover Short Version (Optional)
+==================================================
+
+"In Week 2 we focused on explainability, alert quality, and reliability.
+Users can now understand why score moved, switch 24h and 7d history windows,
+configure watchlist alert sensitivity, filter critical alerts, and run manual checks
+with clear status feedback. We also improved loading and warning readability for a cleaner, more professional UX."

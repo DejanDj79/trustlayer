@@ -1,15 +1,32 @@
 TRUSTLAYER - WEEK 2 DAY-BY-DAY PLAN
 Period: 13 Apr 2026 - 19 Apr 2026
 
-STATUS SNAPSHOT (as of 05 Apr 2026)
-- [DONE] Day 8/9 tip posla je delimicno pokriven: liquidity + activity signali su vec u score-u.
-- [DONE] Day 12 smer je pokriven: external failure ne rusi API (graceful fallback + rpcHealth).
+STATUS SNAPSHOT (as of 09 Apr 2026)
+- [DONE] Explainability isporucen:
+  - "Why Score Changed"
+  - 24h/7d history filter
+  - bolji empty/sparse history states.
+- [DONE] Alert quality i controls:
+  - threshold 5/10/15
+  - severity minor/major/critical
+  - dedup cooldown
+  - All/Critical filter.
+- [DONE] Persistence hardening:
+  - watchlist/threshold/alerts/mute/snooze opstaju nakon reload-a.
+- [DONE] Watchlist i analyzer UX polish:
+  - header split
+  - overflow fix
+  - suggestions samo na fokus inputa
+  - uklonjen dupli state indikator u watchlist kartici.
+- [DONE] Top tokens loading UX:
+  - initial skeleton
+  - aggregated risk hydration
+  - stagger reveal.
 - [IN PROGRESS] Reliability tuning i scoring quality calibration.
-- [IN PROGRESS] History storage + `GET /v1/history/:mint` (endpoint radi, storage je in-memory MVP).
-- [IN PROGRESS] History chart UI i observability stack (history chart dodat; observability ostaje TODO).
+- [TODO] Observability stack (Sentry + detailed backend metrics) i production deployment.
 
 Goal of week 2:
-- Podici kvalitet score-a i uvesti istoriju + observability.
+- Podici kvalitet score-a, explainability i alert monitoring UX na judge-ready nivo.
 
 --------------------------------------------------
 DAY 8 (13 Apr) - LIQUIDITY SIGNAL V1
@@ -143,7 +160,8 @@ WEEK 2 SUCCESS CHECKLIST
 1. Score koristi svih 5 planiranih signala (bar v1).
 2. History endpoint i history UI rade.
 3. External source failure ne rusi API.
-4. Observability ukljucen (Sentry + logs).
-5. README azuriran.
+4. Alert workflow je produkcijski upotrebljiv (threshold/severity/filter/dedup).
+5. Persistence radi pouzdano za watchlist i alert preferences.
+6. README i Week 2 artefakti azurirani.
 
-If all 5 are true -> Week 2 is successful.
+If all are true -> Week 2 is successful.

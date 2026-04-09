@@ -4,7 +4,7 @@ import { Header } from "./components/Header";
 import { ScoreResult } from "./components/ScoreResult";
 import { TopTokensTable } from "./components/TopTokensTable";
 import { WatchlistPanel } from "./components/WatchlistPanel";
-import { requestJson } from "./lib/api";
+import { requestJsonWithRetry } from "./lib/api";
 import { fallbackLogoUrlForMint, initials, shortMint } from "./lib/format";
 import type {
   ScoreResponse,
@@ -17,6 +17,7 @@ import type {
   TopTokensResponse,
   WatchlistAlertEvent,
   WatchlistAlertPreference,
+  WatchlistAlertSeverity,
   WatchlistItem
 } from "./types";
 
@@ -31,12 +32,15 @@ const TOKEN_HISTORY_TIMEOUT_MS = 12000;
 const WATCHLIST_STORAGE_KEY = "trustlayer.watchlist.v1";
 const WATCHLIST_ALERTS_STORAGE_KEY = "trustlayer.watchlist.alerts.v1";
 const WATCHLIST_ALERT_PREFS_STORAGE_KEY = "trustlayer.watchlist.alertprefs.v1";
+const WATCHLIST_ALERT_THRESHOLD_STORAGE_KEY = "trustlayer.watchlist.alertthreshold.v1";
 const WATCHLIST_MAX_ITEMS = 25;
 const WATCHLIST_SCORE_TIMEOUT_MS = 15000;
 const WATCHLIST_AUTO_REFRESH_MS = 2 * 60 * 1000;
-const WATCHLIST_ALERT_THRESHOLD = 10;
+const WATCHLIST_ALERT_DEFAULT_THRESHOLD = 10;
+const WATCHLIST_ALERT_THRESHOLD_OPTIONS = [5, 10, 15] as const;
 const WATCHLIST_MAX_ALERTS = 80;
 const WATCHLIST_SNOOZE_MS = 60 * 60 * 1000;
+const WATCHLIST_ALERT_DEDUP_WINDOW_MS = 30 * 60 * 1000;
 const BASE58_MINT_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 function normalizeSearchText(value: string): string {
@@ -119,6 +123,18 @@ function formatAlertTimestamp(value: string): string {
   });
 }
 
+function formatCheckTimestamp(value: string): string {
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 function isSnoozeActive(value?: string | null): boolean {
   const normalized = String(value || "").trim();
   if (!normalized) {
@@ -126,6 +142,27 @@ function isSnoozeActive(value?: string | null): boolean {
   }
   const untilMs = new Date(normalized).getTime();
   return Number.isFinite(untilMs) && untilMs > Date.now();
+}
+
+function alertSeverityFromDelta(delta: number): WatchlistAlertSeverity {
+  const abs = Math.abs(Number(delta || 0));
+  if (abs >= 20) {
+    return "critical";
+  }
+  if (abs >= 12) {
+    return "major";
+  }
+  return "minor";
+}
+
+function alertSeverityClass(severity: WatchlistAlertSeverity): string {
+  if (severity === "critical") {
+    return "border-red-500/50 bg-red-950/40 text-red-300";
+  }
+  if (severity === "major") {
+    return "border-amber-500/50 bg-amber-950/40 text-amber-300";
+  }
+  return "border-sky-500/50 bg-sky-950/40 text-sky-300";
 }
 
 export default function App() {
@@ -147,12 +184,23 @@ export default function App() {
   const [watchlistAlertPreferences, setWatchlistAlertPreferences] = useState<
     Record<string, WatchlistAlertPreference>
   >({});
+  const [watchlistAlertThreshold, setWatchlistAlertThreshold] = useState<number>(
+    WATCHLIST_ALERT_DEFAULT_THRESHOLD
+  );
+  const [watchlistHydrated, setWatchlistHydrated] = useState(false);
+  const [watchlistAlertsHydrated, setWatchlistAlertsHydrated] = useState(false);
+  const [watchlistAlertPreferencesHydrated, setWatchlistAlertPreferencesHydrated] = useState(false);
+  const [watchlistAlertThresholdHydrated, setWatchlistAlertThresholdHydrated] = useState(false);
+  const [watchlistAlertFilter, setWatchlistAlertFilter] = useState<"all" | "critical">("all");
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
+  const [watchlistRefreshLoading, setWatchlistRefreshLoading] = useState(false);
+  const [watchlistLastCheckedAt, setWatchlistLastCheckedAt] = useState<string | null>(null);
 
   const [topTokens, setTopTokens] = useState<TopToken[]>([]);
   const [topTokensSource, setTopTokensSource] = useState<string>("unknown");
   const [topTokensWarnings, setTopTokensWarnings] = useState<string[]>([]);
   const [topTokensLoading, setTopTokensLoading] = useState(false);
+  const [topTokensReadyOnce, setTopTokensReadyOnce] = useState(false);
   const [topTokensError, setTopTokensError] = useState<string | null>(null);
   const [topTokenRisks, setTopTokenRisks] = useState<Record<string, TokenRiskState>>({});
   const topTokenNonceRef = useRef(0);
@@ -161,11 +209,24 @@ export default function App() {
   const tokenSearchNonceRef = useRef(0);
   const tokenHistoryNonceRef = useRef(0);
   const watchlistNonceRef = useRef(0);
+  const watchlistRefreshInFlightRef = useRef(false);
   const watchlistLastScoresRef = useRef<Record<string, number>>({});
   const watchlistAlertsRef = useRef<WatchlistAlertEvent[]>([]);
   const watchlistMintSet = useMemo(
     () => new Set(watchlistItems.map((item) => item.mint)),
     [watchlistItems]
+  );
+  const persistWatchlistAlertPreferences = useCallback(
+    (next: Record<string, WatchlistAlertPreference>) => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      window.localStorage.setItem(
+        WATCHLIST_ALERT_PREFS_STORAGE_KEY,
+        JSON.stringify(next)
+      );
+    },
+    []
   );
 
   const pushWatchlistAlert = useCallback(
@@ -182,9 +243,13 @@ export default function App() {
         return;
       }
       const delta = Number((nextScore - previousScore).toFixed(2));
-      if (Math.abs(delta) < WATCHLIST_ALERT_THRESHOLD) {
+      if (Math.abs(delta) < watchlistAlertThreshold) {
         return;
       }
+      const severity = alertSeverityFromDelta(delta);
+      const nowIso = new Date().toISOString();
+      const nowMs = Date.parse(nowIso);
+      const direction = delta === 0 ? 0 : delta > 0 ? 1 : -1;
 
       const matching = watchlistItems.find((item) => item.mint === normalizedMint);
       const alert: WatchlistAlertEvent = {
@@ -195,24 +260,46 @@ export default function App() {
         previousScore: Number(previousScore.toFixed(2)),
         nextScore: Number(nextScore.toFixed(2)),
         delta,
+        severity,
         status: status || undefined,
-        createdAt: new Date().toISOString()
+        createdAt: nowIso
       };
-      setWatchlistAlerts((current) => [alert, ...current].slice(0, WATCHLIST_MAX_ALERTS));
+      setWatchlistAlerts((current) => {
+        const latestSameMint = current.find((item) => item.mint === normalizedMint);
+        if (latestSameMint) {
+          const latestTs = Date.parse(String(latestSameMint.createdAt || ""));
+          const latestDirection =
+            latestSameMint.delta === 0 ? 0 : Number(latestSameMint.delta || 0) > 0 ? 1 : -1;
+          const latestSeverity = latestSameMint.severity || alertSeverityFromDelta(latestSameMint.delta || 0);
+          const withinCooldown =
+            Number.isFinite(latestTs) && nowMs - latestTs < WATCHLIST_ALERT_DEDUP_WINDOW_MS;
+          if (withinCooldown && latestDirection === direction && latestSeverity === severity) {
+            return current;
+          }
+        }
+        return [alert, ...current].slice(0, WATCHLIST_MAX_ALERTS);
+      });
     },
-    [watchlistAlertPreferences, watchlistItems]
+    [watchlistAlertPreferences, watchlistAlertThreshold, watchlistItems]
   );
 
-  const fetchScoreByMint = useCallback(async (mintToAnalyze: string, timeoutMs: number) => {
-    const normalizedMint = String(mintToAnalyze || "").trim();
-    if (!normalizedMint) {
-      throw new Error("Invalid mint address.");
-    }
-    return await requestJson<ScoreResponse>(
-      `/v1/score/${encodeURIComponent(normalizedMint)}`,
-      timeoutMs
-    );
-  }, []);
+  const fetchScoreByMint = useCallback(
+    async (mintToAnalyze: string, timeoutMs: number, retries = 0): Promise<ScoreResponse> => {
+      const normalizedMint = String(mintToAnalyze || "").trim();
+      if (!normalizedMint) {
+        throw new Error("Invalid mint address.");
+      }
+      return await requestJsonWithRetry<ScoreResponse>(
+        `/v1/score/${encodeURIComponent(normalizedMint)}`,
+        {
+          timeoutMs,
+          retries,
+          retryDelayMs: 300
+        }
+      );
+    },
+    []
+  );
 
   const analyzeMint = useCallback(async (mintToAnalyze: string) => {
     const normalizedMint = mintToAnalyze.trim();
@@ -289,10 +376,11 @@ export default function App() {
     setTopTokensError(null);
 
     try {
-      const payload = await requestJson<TopTokensResponse>(
-        "/v1/top-tokens?limit=20",
-        TOP_TOKENS_TIMEOUT_MS
-      );
+      const payload = await requestJsonWithRetry<TopTokensResponse>("/v1/top-tokens?limit=20", {
+        timeoutMs: TOP_TOKENS_TIMEOUT_MS,
+        retries: 1,
+        retryDelayMs: 400
+      });
       if (nonce !== topTokenNonceRef.current) {
         return;
       }
@@ -307,41 +395,38 @@ export default function App() {
         initialRisks[token.mint] = { state: "pending" };
       }
       setTopTokenRisks(initialRisks);
+      const aggregatedRisks: Record<string, TokenRiskState> = { ...initialRisks };
 
       for (let i = 0; i < tokens.length; i += TOP_TOKEN_SCORE_BATCH_SIZE) {
         const batch = tokens.slice(i, i + TOP_TOKEN_SCORE_BATCH_SIZE);
         await Promise.all(
           batch.map(async (token) => {
             try {
-              const score = await requestJson<ScoreResponse>(
-                `/v1/score/${encodeURIComponent(token.mint)}`,
-                TOP_TOKEN_SCORE_TIMEOUT_MS
-              );
+              const score = await fetchScoreByMint(token.mint, TOP_TOKEN_SCORE_TIMEOUT_MS, 1);
               if (nonce !== topTokenNonceRef.current) {
                 return;
               }
-              setTopTokenRisks((current) => ({
-                ...current,
-                [token.mint]: {
-                  state: "ready",
-                  score: score.score,
-                  status: score.status
-                }
-              }));
+              aggregatedRisks[token.mint] = {
+                state: "ready",
+                score: score.score,
+                status: score.status
+              };
             } catch {
               if (nonce !== topTokenNonceRef.current) {
                 return;
               }
-              setTopTokenRisks((current) => ({
-                ...current,
-                [token.mint]: {
-                  state: "error"
-                }
-              }));
+              aggregatedRisks[token.mint] = {
+                state: "error"
+              };
             }
           })
         );
       }
+      if (nonce !== topTokenNonceRef.current) {
+        return;
+      }
+      setTopTokenRisks(aggregatedRisks);
+      setTopTokensReadyOnce(true);
     } catch (error) {
       if (nonce !== topTokenNonceRef.current) {
         return;
@@ -355,7 +440,7 @@ export default function App() {
         setTopTokensLoading(false);
       }
     }
-  }, []);
+  }, [fetchScoreByMint]);
 
   useEffect(() => {
     void fetchTopTokens();
@@ -395,6 +480,8 @@ export default function App() {
       setWatchlistItems(sanitized);
     } catch {
       // ignore localStorage parsing errors
+    } finally {
+      setWatchlistHydrated(true);
     }
   }, []);
 
@@ -416,6 +503,11 @@ export default function App() {
           const previous = Number(item?.previousScore);
           const next = Number(item?.nextScore);
           const delta = Number(item?.delta);
+          const severityRaw = String(item?.severity || "").trim().toLowerCase();
+          const severity: WatchlistAlertSeverity =
+            severityRaw === "critical" || severityRaw === "major" || severityRaw === "minor"
+              ? (severityRaw as WatchlistAlertSeverity)
+              : alertSeverityFromDelta(delta);
           return {
             id: String(item?.id || "").trim(),
             mint: String(item?.mint || "").trim(),
@@ -424,6 +516,7 @@ export default function App() {
             previousScore: Number.isFinite(previous) ? previous : 0,
             nextScore: Number.isFinite(next) ? next : 0,
             delta: Number.isFinite(delta) ? delta : 0,
+            severity,
             status: item?.status ? String(item.status) : undefined,
             createdAt: item?.createdAt ? String(item.createdAt) : new Date().toISOString()
           };
@@ -434,6 +527,8 @@ export default function App() {
       watchlistAlertsRef.current = sanitized;
     } catch {
       // ignore localStorage parsing errors
+    } finally {
+      setWatchlistAlertsHydrated(true);
     }
   }, []);
 
@@ -471,33 +566,68 @@ export default function App() {
       setWatchlistAlertPreferences(next);
     } catch {
       // ignore localStorage parsing errors
+    } finally {
+      setWatchlistAlertPreferencesHydrated(true);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    try {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const raw = window.localStorage.getItem(WATCHLIST_ALERT_THRESHOLD_STORAGE_KEY);
+      if (!raw) {
+        return;
+      }
+      const parsed = Number(raw);
+      if (
+        Number.isFinite(parsed) &&
+        WATCHLIST_ALERT_THRESHOLD_OPTIONS.includes(parsed as (typeof WATCHLIST_ALERT_THRESHOLD_OPTIONS)[number])
+      ) {
+        setWatchlistAlertThreshold(parsed);
+      }
+    } catch {
+      // ignore localStorage parsing errors
+    } finally {
+      setWatchlistAlertThresholdHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !watchlistHydrated) {
       return;
     }
     window.localStorage.setItem(WATCHLIST_STORAGE_KEY, JSON.stringify(watchlistItems));
-  }, [watchlistItems]);
+  }, [watchlistHydrated, watchlistItems]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !watchlistAlertsHydrated) {
       return;
     }
     window.localStorage.setItem(WATCHLIST_ALERTS_STORAGE_KEY, JSON.stringify(watchlistAlerts));
     watchlistAlertsRef.current = watchlistAlerts;
-  }, [watchlistAlerts]);
+  }, [watchlistAlerts, watchlistAlertsHydrated]);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (typeof window === "undefined" || !watchlistAlertPreferencesHydrated) {
       return;
     }
     window.localStorage.setItem(
       WATCHLIST_ALERT_PREFS_STORAGE_KEY,
       JSON.stringify(watchlistAlertPreferences)
     );
-  }, [watchlistAlertPreferences]);
+  }, [watchlistAlertPreferences, watchlistAlertPreferencesHydrated]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !watchlistAlertThresholdHydrated) {
+      return;
+    }
+    window.localStorage.setItem(
+      WATCHLIST_ALERT_THRESHOLD_STORAGE_KEY,
+      String(watchlistAlertThreshold)
+    );
+  }, [watchlistAlertThreshold, watchlistAlertThresholdHydrated]);
 
   const normalizedInputMint = mint.trim();
 
@@ -532,9 +662,13 @@ export default function App() {
 
     const nonce = ++tokenSearchNonceRef.current;
     const timeoutId = window.setTimeout(() => {
-      void requestJson<TokenSearchResponse>(
+      void requestJsonWithRetry<TokenSearchResponse>(
         `/v1/token-search?q=${encodeURIComponent(query)}&limit=8`,
-        TOKEN_SEARCH_TIMEOUT_MS
+        {
+          timeoutMs: TOKEN_SEARCH_TIMEOUT_MS,
+          retries: 1,
+          retryDelayMs: 250
+        }
       )
         .then((payload) => {
           if (nonce !== tokenSearchNonceRef.current) {
@@ -605,11 +739,12 @@ export default function App() {
     setWatchlistAlerts((current) => current.filter((item) => item.mint !== normalizedMint));
     setWatchlistAlertPreferences((current) => {
       const { [normalizedMint]: _removed, ...rest } = current;
+      persistWatchlistAlertPreferences(rest);
       return rest;
     });
     const { [normalizedMint]: _score, ...restScores } = watchlistLastScoresRef.current;
     watchlistLastScoresRef.current = restScores;
-  }, []);
+  }, [persistWatchlistAlertPreferences]);
 
   const toggleWatchlistAlertMute = useCallback((mintToToggle: string) => {
     const normalizedMint = String(mintToToggle || "").trim();
@@ -621,17 +756,20 @@ export default function App() {
       const nextMuted = !Boolean(row.muted);
       if (!nextMuted && !isSnoozeActive(row.snoozedUntil)) {
         const { [normalizedMint]: _removed, ...rest } = current;
+        persistWatchlistAlertPreferences(rest);
         return rest;
       }
-      return {
+      const next = {
         ...current,
         [normalizedMint]: {
           muted: nextMuted,
           snoozedUntil: nextMuted ? null : row.snoozedUntil || null
         }
       };
+      persistWatchlistAlertPreferences(next);
+      return next;
     });
-  }, []);
+  }, [persistWatchlistAlertPreferences]);
 
   const toggleWatchlistAlertSnooze = useCallback((mintToToggle: string) => {
     const normalizedMint = String(mintToToggle || "").trim();
@@ -644,26 +782,31 @@ export default function App() {
       if (active) {
         if (!row.muted) {
           const { [normalizedMint]: _removed, ...rest } = current;
+          persistWatchlistAlertPreferences(rest);
           return rest;
         }
-        return {
+        const next = {
           ...current,
           [normalizedMint]: {
             ...row,
             snoozedUntil: null
           }
         };
+        persistWatchlistAlertPreferences(next);
+        return next;
       }
       const snoozedUntil = new Date(Date.now() + WATCHLIST_SNOOZE_MS).toISOString();
-      return {
+      const next = {
         ...current,
         [normalizedMint]: {
           muted: false,
           snoozedUntil
         }
       };
+      persistWatchlistAlertPreferences(next);
+      return next;
     });
-  }, []);
+  }, [persistWatchlistAlertPreferences]);
 
   const toggleWatchlistFromTopToken = useCallback(
     (token: TopToken) => {
@@ -681,72 +824,95 @@ export default function App() {
     [addToWatchlist, removeFromWatchlist, watchlistMintSet]
   );
 
-  const refreshWatchlistScores = useCallback(async () => {
+  const refreshWatchlistScores = useCallback(async (options?: { interactive?: boolean }) => {
+    const interactive = Boolean(options?.interactive);
+    if (watchlistRefreshInFlightRef.current) {
+      return;
+    }
+    watchlistRefreshInFlightRef.current = true;
+    if (interactive) {
+      setWatchlistRefreshLoading(true);
+    }
+
     const mints = Array.from(new Set(watchlistItems.map((item) => item.mint))).filter((itemMint) =>
       BASE58_MINT_RE.test(itemMint)
     );
     if (mints.length === 0) {
+      watchlistRefreshInFlightRef.current = false;
+      if (interactive) {
+        setWatchlistRefreshLoading(false);
+      }
       return;
     }
 
     const nonce = ++watchlistNonceRef.current;
-    setWatchlistRisks((current) => {
-      const next = { ...current };
-      for (const itemMint of mints) {
-        if (!next[itemMint]) {
-          next[itemMint] = { state: "pending" };
-        }
-      }
-      return next;
-    });
-
-    const BATCH_SIZE = 4;
-    for (let i = 0; i < mints.length; i += BATCH_SIZE) {
-      const batch = mints.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        batch.map(async (itemMint) => {
-          try {
-            const score = await fetchScoreByMint(itemMint, WATCHLIST_SCORE_TIMEOUT_MS);
-            if (nonce !== watchlistNonceRef.current) {
-              return;
-            }
-            setWatchlistRisks((current) => ({
-              ...current,
-              [itemMint]: {
-                state: "ready",
-                score: score.score,
-                status: score.status
-              }
-            }));
-            const previousScore = watchlistLastScoresRef.current[itemMint];
-            if (Number.isFinite(previousScore)) {
-              pushWatchlistAlert(itemMint, previousScore, score.score, score.status);
-            }
-            watchlistLastScoresRef.current = {
-              ...watchlistLastScoresRef.current,
-              [itemMint]: score.score
-            };
-            setTopTokenRisks((current) => ({
-              ...current,
-              [itemMint]: {
-                state: "ready",
-                score: score.score,
-                status: score.status
-              }
-            }));
-          } catch {
-            if (nonce !== watchlistNonceRef.current) {
-              return;
-            }
-            setWatchlistRisks((current) => ({
-              ...current,
-              [itemMint]: {
-                state: "error"
-              }
-            }));
+    try {
+      setWatchlistRisks((current) => {
+        const next = { ...current };
+        for (const itemMint of mints) {
+          if (!next[itemMint]) {
+            next[itemMint] = { state: "pending" };
           }
-        })
-      );
+        }
+        return next;
+      });
+
+      const BATCH_SIZE = 4;
+      for (let i = 0; i < mints.length; i += BATCH_SIZE) {
+        const batch = mints.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(async (itemMint) => {
+            try {
+              const score = await fetchScoreByMint(itemMint, WATCHLIST_SCORE_TIMEOUT_MS, 1);
+              if (nonce !== watchlistNonceRef.current) {
+                return;
+              }
+              setWatchlistRisks((current) => ({
+                ...current,
+                [itemMint]: {
+                  state: "ready",
+                  score: score.score,
+                  status: score.status
+                }
+              }));
+              const previousScore = watchlistLastScoresRef.current[itemMint];
+              if (Number.isFinite(previousScore)) {
+                pushWatchlistAlert(itemMint, previousScore, score.score, score.status);
+              }
+              watchlistLastScoresRef.current = {
+                ...watchlistLastScoresRef.current,
+                [itemMint]: score.score
+              };
+              setTopTokenRisks((current) => ({
+                ...current,
+                [itemMint]: {
+                  state: "ready",
+                  score: score.score,
+                  status: score.status
+                }
+              }));
+            } catch {
+              if (nonce !== watchlistNonceRef.current) {
+                return;
+              }
+              setWatchlistRisks((current) => ({
+                ...current,
+                [itemMint]: {
+                  state: "error"
+                }
+              }));
+            }
+          })
+        );
+      }
+      if (nonce === watchlistNonceRef.current) {
+        setWatchlistLastCheckedAt(new Date().toISOString());
+      }
+    } finally {
+      watchlistRefreshInFlightRef.current = false;
+      if (interactive) {
+        setWatchlistRefreshLoading(false);
+      }
     }
   }, [fetchScoreByMint, pushWatchlistAlert, watchlistItems]);
 
@@ -765,6 +931,9 @@ export default function App() {
   }, [refreshWatchlistScores, watchlistItems.length]);
 
   useEffect(() => {
+    if (!watchlistHydrated || !watchlistAlertsHydrated || !watchlistAlertPreferencesHydrated) {
+      return;
+    }
     const activeMints = new Set(watchlistItems.map((item) => item.mint));
     const nextScores: Record<string, number> = {};
     for (const [itemMint, score] of Object.entries(watchlistLastScoresRef.current)) {
@@ -795,12 +964,29 @@ export default function App() {
       return;
     }
     setWatchlistAlerts((current) => current.filter((alert) => activeMints.has(alert.mint)));
-  }, [watchlistItems]);
+  }, [
+    watchlistAlertPreferencesHydrated,
+    watchlistAlertsHydrated,
+    watchlistHydrated,
+    watchlistItems
+  ]);
 
   const watchlistAlertMintSet = useMemo(
     () => new Set(watchlistAlerts.map((alert) => alert.mint)),
     [watchlistAlerts]
   );
+  const criticalAlertsCount = useMemo(
+    () => watchlistAlerts.filter((alert) => (alert.severity || alertSeverityFromDelta(alert.delta)) === "critical").length,
+    [watchlistAlerts]
+  );
+  const visibleWatchlistAlerts = useMemo(() => {
+    if (watchlistAlertFilter === "critical") {
+      return watchlistAlerts.filter(
+        (alert) => (alert.severity || alertSeverityFromDelta(alert.delta)) === "critical"
+      );
+    }
+    return watchlistAlerts;
+  }, [watchlistAlertFilter, watchlistAlerts]);
   const watchlistSuppressedMintSet = useMemo(() => {
     const next = new Set<string>();
     for (const item of watchlistItems) {
@@ -814,7 +1000,6 @@ export default function App() {
     }
     return next;
   }, [watchlistAlertPreferences, watchlistItems]);
-
   const resolvedInputMint = resolveMintFromQuery(normalizedInputMint, analyzerSuggestions);
   const inputMatchesTopToken =
     Boolean(resolvedInputMint) && topTokens.some((token) => token.mint === resolvedInputMint);
@@ -848,10 +1033,11 @@ export default function App() {
     }
 
     const nonce = ++tokenProfileNonceRef.current;
-    void requestJson<TokenProfileResponse>(
-      `/v1/token/${encodeURIComponent(activeMint)}`,
-      TOKEN_PROFILE_TIMEOUT_MS
-    )
+    void requestJsonWithRetry<TokenProfileResponse>(`/v1/token/${encodeURIComponent(activeMint)}`, {
+      timeoutMs: TOKEN_PROFILE_TIMEOUT_MS,
+      retries: 1,
+      retryDelayMs: 300
+    })
       .then((profile) => {
         if (nonce !== tokenProfileNonceRef.current) {
           return;
@@ -879,9 +1065,13 @@ export default function App() {
     setHistoryLoading(true);
     setHistoryError(null);
 
-    void requestJson<ScoreHistoryResponse>(
+    void requestJsonWithRetry<ScoreHistoryResponse>(
       `/v1/history/${encodeURIComponent(activeMint)}?limit=40`,
-      TOKEN_HISTORY_TIMEOUT_MS
+      {
+        timeoutMs: TOKEN_HISTORY_TIMEOUT_MS,
+        retries: 1,
+        retryDelayMs: 300
+      }
     )
       .then((payload) => {
         if (nonce !== tokenHistoryNonceRef.current) {
@@ -959,6 +1149,7 @@ export default function App() {
                 tokens={topTokens}
                 risks={topTokenRisks}
                 isLoading={topTokensLoading}
+                showInitialSkeleton={!topTokensReadyOnce && topTokensLoading}
                 source={topTokensSource}
                 fallbackMode={topTokensWarnings.length > 0}
                 errorMessage={topTokensError}
@@ -983,28 +1174,39 @@ export default function App() {
                   type="button"
                   onClick={() => setIsWatchlistOpen((current) => !current)}
                   aria-expanded={isWatchlistOpen}
-                  className="flex w-full items-center gap-2 border border-tl-border bg-black px-3 py-2 text-left transition-colors duration-150 hover:bg-[#101010]"
+                  className="w-full border border-tl-border bg-black px-3 py-2 text-left transition-colors duration-150 hover:bg-[#101010]"
                 >
-                  <span className="font-display text-sm font-semibold text-tl-text">Favorites watchlist</span>
-                  <span className="ml-1 text-xs text-tl-muted">{watchlistItems.length} token(s)</span>
-                  {watchlistAlerts.length > 0 ? (
-                    <span className="rounded-sm border border-red-500/40 bg-red-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-red-300">
-                      {watchlistAlerts.length} alert{watchlistAlerts.length === 1 ? "" : "s"}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-display text-sm font-semibold text-tl-text">Favorites watchlist</span>
+                    <span className="text-xs text-tl-muted">{watchlistItems.length} token(s)</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1">
+                      {watchlistAlerts.length > 0 ? (
+                        <span className="rounded-sm border border-red-500/40 bg-red-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-red-300">
+                          {watchlistAlerts.length} alert{watchlistAlerts.length === 1 ? "" : "s"}
+                        </span>
+                      ) : null}
+                      {criticalAlertsCount > 0 ? (
+                        <span className="rounded-sm border border-red-500/60 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-red-200">
+                          {criticalAlertsCount} critical
+                        </span>
+                      ) : null}
+                      {watchlistSuppressedMintSet.size > 0 ? (
+                        <span className="rounded-sm border border-zinc-600/70 bg-zinc-900/70 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-300">
+                          {watchlistSuppressedMintSet.size} suppressed
+                        </span>
+                      ) : null}
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className={`inline-block text-sm text-tl-muted transition-transform duration-150 ${
+                        isWatchlistOpen ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▾
                     </span>
-                  ) : null}
-                  {watchlistSuppressedMintSet.size > 0 ? (
-                    <span className="rounded-sm border border-zinc-600/70 bg-zinc-900/70 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-300">
-                      {watchlistSuppressedMintSet.size} suppressed
-                    </span>
-                  ) : null}
-                  <span
-                    aria-hidden="true"
-                    className={`ml-auto inline-block text-sm text-tl-muted transition-transform duration-150 ${
-                      isWatchlistOpen ? "rotate-180" : ""
-                    }`}
-                  >
-                    ▾
-                  </span>
+                  </div>
                 </button>
 
                 {isWatchlistOpen ? (
@@ -1041,15 +1243,89 @@ export default function App() {
                           </button>
                         ) : null}
                       </div>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">
+                          Alert threshold
+                        </p>
+                        <div className="flex items-center gap-1">
+                          {WATCHLIST_ALERT_THRESHOLD_OPTIONS.map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setWatchlistAlertThreshold(value)}
+                              className={`border px-1.5 py-0.5 text-[10px] font-semibold ${
+                                watchlistAlertThreshold === value
+                                  ? "border-sky-500/50 bg-sky-950/40 text-sky-300"
+                                  : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+                              }`}
+                            >
+                              {value} pts
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <p className="mb-2 text-[11px] text-zinc-500">
+                        Threshold applies to new watchlist alerts during checks. Score History uses
+                        historical snapshots and does not change with threshold.
+                      </p>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">Quick test</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void refreshWatchlistScores({ interactive: true });
+                          }}
+                          disabled={watchlistItems.length === 0 || watchlistRefreshLoading}
+                          className="border border-tl-border bg-black px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-300 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {watchlistRefreshLoading ? "Checking..." : "Check now"}
+                        </button>
+                      </div>
+                      <p className="mb-2 text-[11px] text-zinc-500">
+                        {watchlistRefreshLoading
+                          ? "Running watchlist refresh..."
+                          : watchlistLastCheckedAt
+                            ? `Last check completed at ${formatCheckTimestamp(watchlistLastCheckedAt)}`
+                            : "No manual check yet."}
+                      </p>
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">Filter</p>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setWatchlistAlertFilter("all")}
+                            className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                              watchlistAlertFilter === "all"
+                                ? "border-sky-500/50 bg-sky-950/40 text-sky-300"
+                                : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setWatchlistAlertFilter("critical")}
+                            className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                              watchlistAlertFilter === "critical"
+                                ? "border-red-500/50 bg-red-950/40 text-red-300"
+                                : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+                            }`}
+                          >
+                            Critical
+                          </button>
+                        </div>
+                      </div>
 
                       {watchlistAlerts.length === 0 ? (
                         <p className="text-xs text-tl-muted">
                           Alerts trigger when a watchlist token score moves by at least{" "}
-                          {WATCHLIST_ALERT_THRESHOLD} points between checks.
+                          {watchlistAlertThreshold} points between checks.
                         </p>
+                      ) : visibleWatchlistAlerts.length === 0 ? (
+                        <p className="text-xs text-tl-muted">No alerts in selected filter.</p>
                       ) : (
                         <ul className="grid gap-1.5">
-                          {watchlistAlerts.slice(0, 8).map((alert) => (
+                          {visibleWatchlistAlerts.slice(0, 8).map((alert) => (
                             <li key={alert.id}>
                               <button
                                 type="button"
@@ -1070,13 +1346,22 @@ export default function App() {
                                     {alert.symbol || "N/A"} · {formatAlertTimestamp(alert.createdAt)}
                                   </span>
                                 </span>
-                                <span
-                                  className={`text-xs font-bold ${
-                                    alert.delta >= 0 ? "text-red-400" : "text-green-300"
-                                  }`}
-                                >
-                                  {alert.delta >= 0 ? "+" : ""}
-                                  {Math.round(alert.delta)} pts
+                                <span className="flex items-center gap-2">
+                                  <span
+                                    className={`rounded-sm border px-1 py-0.5 text-[10px] font-semibold uppercase ${alertSeverityClass(
+                                      alert.severity || alertSeverityFromDelta(alert.delta)
+                                    )}`}
+                                  >
+                                    {alert.severity || alertSeverityFromDelta(alert.delta)}
+                                  </span>
+                                  <span
+                                    className={`text-xs font-bold ${
+                                      alert.delta >= 0 ? "text-red-400" : "text-green-300"
+                                    }`}
+                                  >
+                                    {alert.delta >= 0 ? "+" : ""}
+                                    {Math.round(alert.delta)} pts
+                                  </span>
                                 </span>
                               </button>
                             </li>
@@ -1110,7 +1395,7 @@ export default function App() {
                         />
                       ) : null}
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-tl-text">{activeTokenName}</p>
                       <p className="truncate text-xs text-tl-muted">
                         {activeTokenSymbol} · {shortMint(activeMint)}
@@ -1139,7 +1424,7 @@ export default function App() {
                       title={
                         watchlistMintSet.has(activeMint) ? "Remove from favorites" : "Add to favorites"
                       }
-                      className={`grid h-7 w-7 place-items-center border transition-colors duration-150 ${
+                      className={`ml-auto grid h-7 w-7 place-items-center border transition-colors duration-150 ${
                         watchlistMintSet.has(activeMint)
                           ? "border-amber-500/40 bg-amber-950/40 text-amber-300 hover:text-amber-200"
                           : "border-tl-border bg-black text-zinc-500 hover:text-zinc-200"

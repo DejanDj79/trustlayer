@@ -1,0 +1,109 @@
+Frontier Hackathon - Week 2 Video
+Project: TrustLayer
+Format: Screen-only demo (no face camera)
+Target length: 60-75 seconds
+
+==================================================
+1) Voiceover Script (Week 2 Final)
+==================================================
+
+Hi everyone, this is our Week 2 update for TrustLayer.
+
+In Week 1 we delivered the core MVP.
+In Week 2 we focused on explainability, watchlist alert quality, and reliability polish.
+
+First, we expanded explainability with a "Why Score Changed" section.
+Now users can see score delta, risk transition, and plain-language movement context.
+
+Second, we improved trend analysis with 24-hour and 7-day history windows.
+The graph, point count, and movement context adapt to the selected time window.
+
+Third, we upgraded watchlist monitoring.
+Users can set threshold sensitivity to 5, 10, or 15 points, review alert severities,
+filter to critical-only mode, and run an immediate "Check now" refresh with visible status feedback.
+
+We also hardened state persistence.
+Watchlist items, threshold, alert feed, and mute/snooze states now survive reload reliably.
+
+Finally, we improved UX quality:
+cleaner warning readability, better watchlist layout, and smoother top-table loading behavior.
+
+Week 2 made TrustLayer easier to trust, easier to monitor, and easier to demo.
+Next, we move into Week 3 product-level polish and submission prep.
+
+==================================================
+2) Shot List (Screen Recording Guide)
+==================================================
+
+Timeline guide (about 70 sec total):
+
+00:00 - 00:06
+Shot: Open full app layout.
+Action: Hold steady.
+Overlay (optional): "TrustLayer - Week 2 Checkpoint"
+
+00:06 - 00:16
+Shot: Top token table -> token click -> right panel.
+Action: Click one token row and wait for final score panel.
+Capture: score, risk label, confidence.
+
+00:16 - 00:29
+Shot: Explainability block.
+Action: Scroll to "Why Score Changed".
+Capture:
+- delta in points
+- risk transition line
+- movement summary sentence
+Overlay (optional): "Explainability, not only score display"
+
+00:29 - 00:40
+Shot: Score History.
+Action: 24h -> 7d -> 24h toggle.
+Capture: graph and point count changing.
+
+00:40 - 00:53
+Shot: Favorites watchlist controls.
+Action:
+- open watchlist
+- set threshold once (example: 10 -> 5)
+- click "Check now"
+Capture:
+- "Checking..." state
+- "Last check completed at ..."
+
+00:53 - 01:03
+Shot: Alert filter.
+Action: All -> Critical.
+Capture: either critical entries or valid empty state.
+
+01:03 - 01:10
+Shot: Warnings readability (bottom of right panel).
+Action: brief scroll and hold.
+Capture: parsed provider/message readability.
+
+01:10 - 01:15
+Shot: End frame, full layout.
+Overlay (optional):
+"Week 2: Explainability + Alert Quality + Reliability UX"
+
+==================================================
+3) Recording Checklist
+==================================================
+
+- Browser zoom 100%, full-screen app window.
+- Keep one token ready with visible history points.
+- Keep one watchlist token present before recording.
+- Record two takes:
+  - Take A: normal pace
+  - Take B: slower fallback
+- Keep cursor movement deliberate and avoid rapid scrolling.
+
+==================================================
+4) Editing Notes
+==================================================
+
+- Use straight cuts only (no heavy transitions).
+- Keep captions short and feature-focused.
+- If no critical alerts exist, show empty critical filter state and narrate as expected behavior.
+- Export 1080p, 30fps.
+- Keep final duration between 60 and 75 seconds.

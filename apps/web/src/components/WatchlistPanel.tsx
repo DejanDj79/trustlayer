@@ -78,7 +78,7 @@ export function WatchlistPanel({
   compact = false
 }: WatchlistPanelProps) {
   return (
-    <section className={compact ? "bg-transparent px-0 py-2" : "bg-transparent px-4 py-4"}>
+    <section className={compact ? "min-w-0 bg-transparent px-0 py-2" : "min-w-0 bg-transparent px-4 py-4"}>
       {showHeader ? (
         <>
           <div className="mb-2 flex items-center justify-between gap-3">
@@ -96,7 +96,7 @@ export function WatchlistPanel({
           Add tokens from the table or from the active analysis panel.
         </div>
       ) : (
-        <ul className="grid gap-2">
+        <ul className="grid min-w-0 gap-2">
           {items.map((item) => {
             const isSelected = selectedMint === item.mint;
             const hasAlert = alertMints?.has(item.mint) || false;
@@ -108,16 +108,16 @@ export function WatchlistPanel({
             return (
               <li
                 key={item.mint}
-                className={`border border-tl-border px-3 py-2 ${
+                className={`w-full min-w-0 border border-tl-border px-3 py-2 ${
                   isSelected ? "bg-[#202020]" : "bg-black"
                 }`}
               >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-2">
+                  <div className="flex min-w-0 items-center justify-between gap-3">
                     <button
                       type="button"
                       onClick={() => onAnalyzeMint(item.mint)}
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                      className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden text-left"
                     >
                       <WatchlistLogo item={item} />
                       <span className="min-w-0">
@@ -130,17 +130,7 @@ export function WatchlistPanel({
                       </span>
                     </button>
 
-                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                      {muted ? (
-                        <span className="rounded-sm border border-zinc-600/70 bg-zinc-900/70 px-1 py-0.5 text-[10px] font-semibold text-zinc-300">
-                          Muted
-                        </span>
-                      ) : null}
-                      {!muted && snoozed ? (
-                        <span className="rounded-sm border border-sky-500/50 bg-sky-950/40 px-1 py-0.5 text-[10px] font-semibold text-sky-300">
-                          Snoozed
-                        </span>
-                      ) : null}
+                    <div className="flex min-w-0 max-w-[48%] flex-wrap items-center justify-end gap-1.5">
                       {hasAlert ? (
                         <span className="rounded-sm border border-red-500/40 bg-red-950/40 px-1 py-0.5 text-[10px] font-semibold text-red-300">
                           Alert
@@ -150,7 +140,7 @@ export function WatchlistPanel({
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-2 pl-0 sm:pl-10">
+                  <div className="flex w-full flex-wrap items-center justify-end gap-2">
                     {onToggleMute ? (
                       <button
                         type="button"

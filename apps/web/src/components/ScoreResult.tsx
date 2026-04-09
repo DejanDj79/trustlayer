@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { formatNumber, formatUsd, riskBandFromScore, riskLabelFromBand, statusClasses } from "../lib/format";
 import type { RpcHealthItem, ScoreHistoryResponse, ScoreResponse } from "../types";
 
@@ -27,6 +28,98 @@ function providersSummary(item: RpcHealthItem | undefined): string {
     .join(" | ");
 }
 
+function movementSummary(delta: number): string {
+  const abs = Math.abs(delta);
+  if (abs < 3) {
+    return "Score is mostly stable.";
+  }
+  if (abs < 8) {
+    return "Score moved slightly.";
+  }
+  if (abs < 15) {
+    return "Score moved moderately.";
+  }
+  return "Score moved sharply.";
+}
+
+interface ParsedWarningEndpoint {
+  provider: string;
+  message: string;
+}
+
+interface ParsedWarning {
+  title: string;
+  summary: string | null;
+  endpoints: ParsedWarningEndpoint[];
+  raw: string;
+}
+
+function parseWarning(rawWarning: string): ParsedWarning {
+  const raw = String(rawWarning || "").trim();
+  if (!raw) {
+    return {
+      title: "Warning",
+      summary: null,
+      endpoints: [],
+      raw: ""
+    };
+  }
+
+  const firstColon = raw.indexOf(": ");
+  if (firstColon <= 0) {
+    return {
+      title: "Warning",
+      summary: raw,
+      endpoints: [],
+      raw
+    };
+  }
+
+  const title = raw.slice(0, firstColon).trim();
+  const remainder = raw.slice(firstColon + 2).trim();
+  const secondColon = remainder.indexOf(": ");
+  const hasEndpointSummary =
+    secondColon > 0 &&
+    remainder.includes("endpoint(s)") &&
+    remainder.includes(" | ");
+
+  if (!hasEndpointSummary) {
+    return {
+      title,
+      summary: remainder || null,
+      endpoints: [],
+      raw
+    };
+  }
+
+  const summary = remainder.slice(0, secondColon).trim();
+  const details = remainder.slice(secondColon + 2).trim();
+  const endpoints = details
+    .split(" | ")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const match = entry.match(/^([^:]+):\s*(.+)$/);
+      if (!match) {
+        return {
+          provider: "provider",
+          message: entry
+        };
+      }
+      return {
+        provider: match[1].trim(),
+        message: match[2].trim()
+      };
+    });
+
+  return {
+    title,
+    summary: summary || null,
+    endpoints,
+    raw
+  };
+}
+
 interface ScoreResultProps {
   data: ScoreResponse;
   isLoading: boolean;
@@ -42,6 +135,8 @@ export function ScoreResult({
   historyLoading = false,
   historyError = null
 }: ScoreResultProps) {
+  const [historyWindow, setHistoryWindow] = useState<"24h" | "7d">("24h");
+
   if (isLoading) {
     return (
       <section className="bg-transparent px-4 py-4">
@@ -69,17 +164,26 @@ export function ScoreResult({
     const bTs = Date.parse(b.timestamp || "");
     return aTs - bTs;
   });
-  const latestHistory = sortedHistory[sortedHistory.length - 1] || null;
-  const previousHistory = sortedHistory[sortedHistory.length - 2] || null;
+  const now = Date.now();
+  const windowMs = historyWindow === "24h" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const filteredHistory = sortedHistory.filter((point) => {
+    const ts = Date.parse(point.timestamp || "");
+    return Number.isFinite(ts) && ts >= now - windowMs;
+  });
+  const latestHistory = filteredHistory[filteredHistory.length - 1] || null;
+  const previousHistory = filteredHistory[filteredHistory.length - 2] || null;
   const scoreDelta =
     latestHistory && previousHistory
       ? Number(latestHistory.score || 0) - Number(previousHistory.score || 0)
       : null;
+  const previousScore = previousHistory ? Number(previousHistory.score || 0) : null;
+  const scoreDeltaNow = previousScore !== null ? score - previousScore : null;
+  const previousBand = previousScore !== null ? riskBandFromScore(previousScore) : null;
   const historyPolyline =
-    sortedHistory.length >= 2
-      ? sortedHistory
+    filteredHistory.length >= 2
+      ? filteredHistory
           .map((point, index) => {
-            const x = (index / (sortedHistory.length - 1)) * 100;
+            const x = (index / (filteredHistory.length - 1)) * 100;
             const y = 100 - Math.max(0, Math.min(100, Number(point.score || 0)));
             return `${x.toFixed(2)},${y.toFixed(2)}`;
           })
@@ -142,24 +246,44 @@ export function ScoreResult({
             <div className="mt-3 bg-black px-3 py-3">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="text-[11px] uppercase tracking-[0.06em] text-tl-muted">Score History</p>
-                {scoreDelta !== null ? (
-                  <p
-                    className={`text-xs font-bold ${
-                      scoreDelta > 0 ? "text-green-300" : scoreDelta < 0 ? "text-red-400" : "text-tl-muted"
-                    }`}
-                  >
-                    {scoreDelta > 0 ? "+" : ""}
-                    {Math.round(scoreDelta)}
-                  </p>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
+                    {(["24h", "7d"] as const).map((windowKey) => (
+                      <button
+                        key={windowKey}
+                        type="button"
+                        onClick={() => setHistoryWindow(windowKey)}
+                        className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                          historyWindow === windowKey
+                            ? "border-sky-500/50 bg-sky-950/40 text-sky-300"
+                            : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+                        }`}
+                      >
+                        {windowKey}
+                      </button>
+                    ))}
+                  </div>
+                  {scoreDelta !== null ? (
+                    <p
+                      className={`text-xs font-bold ${
+                        scoreDelta > 0 ? "text-green-300" : scoreDelta < 0 ? "text-red-400" : "text-tl-muted"
+                      }`}
+                    >
+                      {scoreDelta > 0 ? "+" : ""}
+                      {Math.round(scoreDelta)}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               {historyLoading ? (
                 <p className="text-xs text-tl-muted">Loading history...</p>
               ) : historyError ? (
                 <p className="text-xs text-red-400">{historyError}</p>
-              ) : sortedHistory.length < 2 ? (
-                <p className="text-xs text-tl-muted">Need at least 2 points to draw timeline.</p>
+              ) : filteredHistory.length < 2 ? (
+                <p className="text-xs text-tl-muted">
+                  Need at least 2 points in selected {historyWindow} window.
+                </p>
               ) : (
                 <>
                   <div className="h-24 w-full border border-tl-border bg-[#050505] px-2 py-2">
@@ -174,7 +298,7 @@ export function ScoreResult({
                     </svg>
                   </div>
                   <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-tl-muted">
-                    <span>{sortedHistory.length} points</span>
+                    <span>{filteredHistory.length} points ({historyWindow})</span>
                     <span>
                       Latest:{" "}
                       {latestHistory?.timestamp
@@ -186,6 +310,48 @@ export function ScoreResult({
                     </span>
                   </div>
                 </>
+              )}
+            </div>
+
+            <div className="mt-3 bg-black px-3 py-3">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-[11px] uppercase tracking-[0.06em] text-tl-muted">Why Score Changed</p>
+                {scoreDeltaNow !== null ? (
+                  <p
+                    className={`text-xs font-bold ${
+                      scoreDeltaNow > 0
+                        ? "text-red-400"
+                        : scoreDeltaNow < 0
+                          ? "text-green-300"
+                          : "text-tl-muted"
+                    }`}
+                  >
+                    {scoreDeltaNow > 0 ? "+" : ""}
+                    {Math.round(scoreDeltaNow)} pts
+                  </p>
+                ) : null}
+              </div>
+
+              {scoreDeltaNow === null ? (
+                <p className="text-xs text-tl-muted">
+                  Need at least one previous snapshot to explain score movement.
+                </p>
+              ) : (
+                <div className="grid gap-1 text-xs text-tl-muted">
+                  <p>
+                    Current score is {Math.round(score)} vs previous {Math.round(previousScore || 0)}.{" "}
+                    {movementSummary(scoreDeltaNow)}
+                  </p>
+                  {previousBand ? (
+                    <p>
+                      Risk transition: {riskLabelFromBand(previousBand)} to {riskLabel}.
+                    </p>
+                  ) : null}
+                  <p>Current confidence: {confidence.toLowerCase()}.</p>
+                  {(data.reasons || []).length > 0 ? (
+                    <p className="truncate">Top factor now: {(data.reasons || [])[0]}</p>
+                  ) : null}
+                </div>
               )}
             </div>
           </div>
@@ -228,14 +394,42 @@ export function ScoreResult({
       </div>
 
       {Array.isArray(data.warnings) && data.warnings.length > 0 ? (
-        <article className="bg-amber-950 px-4 py-4">
-          <h3 className="font-display mb-2 text-base font-bold text-amber-200">Warnings</h3>
-          <ul className="grid gap-2">
-            {data.warnings.map((warning, index) => (
-              <li key={`${warning}-${index}`} className="bg-[#1a1208] px-3 py-2 text-sm text-amber-200">
-                {warning}
-              </li>
-            ))}
+        <article className="border border-[#6e590f] bg-[#3a3006]/45 px-4 py-4">
+          <h3 className="font-display mb-2 text-lg font-bold text-[#f2dc8c]">Warnings</h3>
+          <ul className="grid gap-3">
+            {data.warnings.map((warning, index) => {
+              const parsed = parseWarning(warning);
+              return (
+                <li
+                  key={`${warning}-${index}`}
+                  className="border border-[#5f4e0d] bg-[#2c2507]/70 px-3 py-2"
+                >
+                  <p className="text-base font-semibold text-[#f2dc8c]">{parsed.title}</p>
+                  {parsed.summary ? (
+                    <p className="mt-1 text-sm leading-snug text-[#e8d487] break-words">
+                      {parsed.summary}
+                    </p>
+                  ) : null}
+                  {parsed.endpoints.length > 0 ? (
+                    <ul className="mt-2 grid gap-1.5 pl-4">
+                      {parsed.endpoints.map((endpoint, endpointIndex) => (
+                        <li
+                          key={`${endpoint.provider}-${endpointIndex}`}
+                          className="list-item list-disc marker:text-[#f2dc8c]"
+                        >
+                          <p className="text-sm leading-snug text-[#dcc57a] break-words">
+                            <span className="font-semibold text-[#f2dc8c] break-all">
+                              {endpoint.provider}
+                            </span>
+                            : {endpoint.message}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              );
+            })}
           </ul>
         </article>
       ) : null}

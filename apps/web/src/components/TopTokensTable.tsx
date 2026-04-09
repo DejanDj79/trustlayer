@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   fallbackLogoUrlForMint,
   formatPercent,
@@ -14,6 +14,7 @@ interface TopTokensTableProps {
   tokens: TopToken[];
   risks: Record<string, TokenRiskState>;
   isLoading: boolean;
+  showInitialSkeleton?: boolean;
   source: string;
   fallbackMode: boolean;
   errorMessage: string | null;
@@ -77,7 +78,7 @@ function FavoriteStarIcon({ active }: { active: boolean }) {
 
 function RiskBadge({ risk }: { risk: TokenRiskState | undefined }) {
   if (!risk || risk.state === "pending") {
-    return <span className="text-xs text-tl-muted">...</span>;
+    return <span className="inline-block h-4 w-12 animate-pulse bg-[#222222]" />;
   }
   if (risk.state === "error") {
     return <span className="text-xs text-tl-muted">n/a</span>;
@@ -96,6 +97,7 @@ export function TopTokensTable(props: TopTokensTableProps) {
     tokens,
     risks,
     isLoading,
+    showInitialSkeleton = false,
     source,
     fallbackMode,
     errorMessage,
@@ -104,6 +106,30 @@ export function TopTokensTable(props: TopTokensTableProps) {
     watchlistMints,
     onToggleWatchlist
   } = props;
+  const [visibleRowCount, setVisibleRowCount] = useState(0);
+  const tokenListKey = useMemo(() => tokens.map((token) => token.mint).join("|"), [tokens]);
+
+  useEffect(() => {
+    if (showInitialSkeleton || tokens.length === 0) {
+      setVisibleRowCount(0);
+      return;
+    }
+    setVisibleRowCount(1);
+    if (tokens.length === 1) {
+      return;
+    }
+    let current = 1;
+    const intervalId = window.setInterval(() => {
+      current += 1;
+      setVisibleRowCount((prev) => Math.max(prev, Math.min(tokens.length, current)));
+      if (current >= tokens.length) {
+        window.clearInterval(intervalId);
+      }
+    }, 45);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [showInitialSkeleton, tokenListKey, tokens.length]);
 
   return (
     <section className="-mx-4 bg-transparent py-4">
@@ -150,25 +176,63 @@ export function TopTokensTable(props: TopTokensTableProps) {
             </tr>
           </thead>
           <tbody>
-            {tokens.length === 0 ? (
+            {showInitialSkeleton ? (
+              Array.from({ length: Math.max(tokens.length, 12) }).map((_, index) => (
+                <tr key={`skeleton-row-${index}`} className="animate-pulse text-sm text-tl-text">
+                  <td className="px-2 py-2">
+                    <span className="block h-4 w-6 bg-[#1f1f1f]" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="block h-8 w-8 bg-[#1f1f1f]" />
+                      <div className="min-w-0 space-y-1.5">
+                        <span className="block h-4 w-28 bg-[#1f1f1f]" />
+                        <span className="block h-3 w-36 bg-[#181818]" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-2 py-2">
+                    <span className="block h-4 w-16 bg-[#1f1f1f]" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <span className="block h-4 w-14 bg-[#1f1f1f]" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <span className="block h-4 w-20 bg-[#1f1f1f]" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <span className="block h-4 w-12 bg-[#1f1f1f]" />
+                  </td>
+                  <td className="px-2 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="block h-7 w-16 bg-[#1f1f1f]" />
+                      <span className="block h-7 w-7 bg-[#1f1f1f]" />
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : tokens.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-2 py-4 text-center text-sm text-tl-muted">
                   No top token data available.
                 </td>
               </tr>
             ) : (
-              tokens.map((token) => {
+              tokens.map((token, index) => {
                 const change = token.change24hPct;
                 const risk = risks[token.mint];
                 const isSelected = selectedMint === token.mint;
                 const inWatchlist = watchlistMints.has(token.mint);
+                const isVisible = index < visibleRowCount;
 
                 return (
                   <tr
                     key={token.mint}
                     aria-selected={isSelected}
                     onClick={() => onAnalyzeToken(token.mint)}
-                    className={`text-sm text-tl-text transition-colors duration-150 cursor-pointer ${
+                    className={`cursor-pointer text-sm text-tl-text transition-all duration-300 ${
+                      isVisible ? "opacity-100" : "pointer-events-none opacity-0"
+                    } ${
                       isSelected ? "bg-[#191a1a]" : "hover:bg-[#111111]"
                     }`}
                   >

@@ -1,20 +1,33 @@
 TRUSTLAYER PLAN
 Colosseum Frontier Hackathon 2026 (06 Apr 2026 - 11 May 2026)
 
-CURRENT STATUS UPDATE (as of 05 Apr 2026)
-- [DONE] Vertical slice postoji: mint input -> API score -> UI rezultat.
-- [DONE] Endpoint-i rade: GET /health i GET /v1/score/:mint.
+CURRENT STATUS UPDATE (as of 09 Apr 2026)
+- [DONE] Vertical slice radi stabilno: mint input/search -> API score -> UI rezultat.
+- [DONE] Endpoint-i rade: GET /health, GET /v1/score/:mint, GET /v1/history/:mint.
 - [DONE] Scoring v1 ukljucuje 5 signala (holder, liquidity, authority, metadata, activity).
-- [DONE] Multi-RPC fallback, timeout/retry i graceful degradation implementirani.
-- [DONE] `rpcHealth` dijagnostika dodata u API i prikazana u UI.
-- [DONE] Request-level in-memory cache + in-flight dedupe po mint-u dodati na `/v1/score/:mint`.
-- [DONE] Judge polish UI zavrsen (empty/loading/error state + metrics + diagnostics layout).
-- [DONE] Market terminal UX dodat: top Solana token tabela + one-click analyze flow.
-- [DONE] Operativna dokumentacija prosirena (`README`, `.env.example`, API contract, smoke script).
-- [DONE] Golden token benchmark scaffold dodat (`docs/golden_tokens_v1.csv` + `scripts/benchmark_golden_tokens.sh`).
+- [DONE] Multi-RPC fallback, timeout/retry i graceful degradation su implementirani.
+- [DONE] `rpcHealth` dijagnostika i warning transparency su prikazani u UI.
+- [DONE] History panel (24h/7d) + "Why Score Changed" explainability blok.
+- [DONE] Watchlist alert sistem:
+  - threshold (5/10/15)
+  - severity (minor/major/critical)
+  - All/Critical filter
+  - dedup cooldown
+- [DONE] Persistence hardening:
+  - watchlist, threshold, alert feed, mute/snooze ostaju nakon reload-a.
+- [DONE] Watchlist UX polish:
+  - header split u 2 reda
+  - overflow fix u desnom panelu
+  - uklonjen dupli muted/snoozed indikator.
+- [DONE] Top table loading UX:
+  - initial skeleton
+  - aggregated risk update (bez one-by-one flicker-a)
+  - stagger row reveal.
+- [DONE] Analyzer UX polish:
+  - suggestions samo na fokus inputa
+  - uklonjen "double input" vizuelni problem.
 - [IN PROGRESS] Tuning scoring formule i guardrail pragova na "golden token" setu.
-- [DONE] History endpoint/UI (`/v1/history/:mint`) i timeline chart (in-memory MVP).
-- [TODO] Produkcioni deploy + javni demo URL + submission video.
+- [TODO] Produkcioni deploy + javni demo URL + final submission video.
 
 Project one-liner
 TrustLayer je web aplikacija + API za procenu rizika Solana tokena/projekata

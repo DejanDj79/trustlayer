@@ -1,0 +1,97 @@
+TrustLayer - Frontier Week 2 Changelog
+Date: April 9, 2026
+Base checkpoint: week1-checkpoint (tag)
+
+==================================================
+Summary
+==================================================
+
+Week 2 focused on explainability, watchlist alert quality, persistence hardening,
+and practical UI/UX polish for a judge-friendly demo flow.
+
+==================================================
+Completed in Week 2
+==================================================
+
+1) Explainability and history improvements
+- Added "Why Score Changed" section in the right panel.
+- Added 24h/7d history window toggles.
+- Improved sparse-history empty states and trend readability.
+
+2) Watchlist alert control upgrade
+- Added configurable threshold (5 / 10 / 15).
+- Added alert severity (minor / major / critical).
+- Added dedup/cooldown to reduce repeated alert noise.
+- Added All/Critical filter in recent alerts.
+- Added critical count badge in watchlist header.
+
+3) Persistence and reload stability
+- Fixed reload persistence for:
+  - watchlist items
+  - threshold
+  - alert feed
+  - mute/snooze states
+- Added hydration guards to avoid early localStorage overwrite.
+- Added immediate localStorage persist on mute/snooze/remove actions.
+
+4) Watchlist interaction polish
+- Reworked watchlist header into two rows:
+  - row 1: title + token count
+  - row 2: alert badges + collapse icon
+- Removed duplicate muted/snoozed labels near token names
+  (state remains visible on action buttons).
+- Fixed watchlist card overflow in right panel.
+
+5) "Check now" clarity
+- Kept manual watchlist refresh button.
+- Added visible feedback:
+  - "Checking..."
+  - disabled state while running
+  - "Last check completed at ..."
+- Removed demo-only "Demo alerts" control.
+
+6) Analyzer UX fix
+- Suggestions dropdown now appears only while input is focused.
+- Prevented "double input" visual confusion after table-click analysis.
+
+7) Top tokens loading behavior (major UX polish)
+- Changed risk loading to aggregated update (no progressive one-by-one risk flicker).
+- Added initial table skeleton while first full risk set is loading.
+- Added staggered row reveal animation after initial load.
+
+8) Right panel readability polish
+- Moved favorite star to far-right alignment in token header.
+- Redesigned warning section with better typography and structure.
+- Parsed long provider warnings into readable provider/message lines.
+- Kept warning message cards while removing unnecessary nested endpoint boxes.
+
+9) Reliability hardening in client fetch flows
+- Added retry+backoff strategy for unstable read paths.
+- Applied to top tokens, score refresh, token search/profile/history.
+
+==================================================
+Main Files Touched
+==================================================
+
+- apps/web/src/App.tsx
+- apps/web/src/components/TopTokensTable.tsx
+- apps/web/src/components/AnalyzerForm.tsx
+- apps/web/src/components/WatchlistPanel.tsx
+- apps/web/src/components/ScoreResult.tsx
+- apps/web/src/lib/api.ts
+- apps/web/src/types.ts
+
+==================================================
+Validation
+==================================================
+
+- Frontend build and typecheck pass (`npm run build`).
+- QA checklist updated for new Week 2 behavior and regressions.
+
+==================================================
+Remaining Week 2 Closers
+==================================================
+
+1) Record final Week 2 60s checkpoint video.
+2) Run full manual QA pass from updated checklist and save evidence.
+3) Prepare Week 2 checkpoint commit note for clean handoff to Week 3.

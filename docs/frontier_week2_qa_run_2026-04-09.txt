@@ -1,0 +1,76 @@
+TrustLayer - Week 2 QA Run Report
+Date: 2026-04-09
+Environment: Codex workspace sandbox + user local verification loop
+
+==================================================
+Automated Checks Executed
+==================================================
+
+1) Frontend typecheck + production build
+- Command: `cd /home/agar/trustlayer/apps/web && npm run build`
+- Result: PASS
+- Notes:
+  - TypeScript `tsc --noEmit` passed.
+  - Vite production build passed after each major UX/persistence patch.
+
+2) API runtime smoke from sandbox
+- Intended endpoints:
+  - `/v1/score/:mint`
+  - `/v1/top-tokens`
+  - `/v1/history/:mint`
+- Result: PARTIALLY BLOCKED in sandbox
+- Notes:
+  - Some local socket checks are restricted in this execution environment.
+  - Runtime endpoint behavior was validated through user local session feedback.
+
+==================================================
+Verified Through User-Guided Local QA
+==================================================
+
+Validated as fixed/improved during iterative runs:
+
+1) Persistence fixes
+- watchlist items retained on reload
+- threshold retained on reload
+- mute/snooze states retained on reload
+
+2) Watchlist UX
+- header split into two rows (less crowded)
+- duplicate muted/snoozed labels removed near token name
+- token card overflow in right panel fixed
+
+3) Alerts UX
+- "Demo alerts" control removed
+- "Check now" now has explicit UX feedback:
+  - Checking state
+  - last checked timestamp
+
+4) Analyzer UX
+- suggestions dropdown constrained to focused input
+- removed confusing "double input field" visual effect
+
+5) Warnings readability
+- warning text structure improved
+- provider/message readability improved
+- nested endpoint boxes removed, message cards preserved
+
+6) Top tokens loading UX
+- initial skeleton for table load
+- non-flickering risk hydration behavior
+- staggered row reveal after initial load
+
+==================================================
+Follow-up Manual QA to Record Before Week 2 Video
+==================================================
+
+1) Capture clean run of:
+- top table load
+- token analysis
+- history filter toggles
+- check now feedback
+- critical filter behavior
+
+2) Re-run persistence checklist from:
+- `docs/frontier_week2_qa_checklist_en.txt`
+
+3) Archive one final "known good" screenshot set for submission notes.

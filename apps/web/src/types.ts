@@ -120,6 +120,8 @@ export interface TokenRiskState {
   status?: RiskStatus;
 }
 
+export type WatchlistAlertSeverity = "minor" | "major" | "critical";
+
 export interface WatchlistAlertEvent {
   id: string;
   mint: string;
@@ -128,6 +130,7 @@ export interface WatchlistAlertEvent {
   previousScore: number;
   nextScore: number;
   delta: number;
+  severity?: WatchlistAlertSeverity;
   status?: RiskStatus;
   createdAt: string;
 }

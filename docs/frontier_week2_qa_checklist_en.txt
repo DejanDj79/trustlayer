@@ -1,0 +1,151 @@
+TrustLayer - Week 2 QA Checklist
+Date: April 9, 2026
+Scope: Explainability + Alert Quality + Reliability + UX polish
+
+==================================================
+0) Preflight
+==================================================
+
+- Start API and web app normally.
+- Hard refresh once before testing.
+- Confirm no startup console red errors.
+
+Quick validation command:
+- `cd /home/agar/trustlayer/apps/web && npm run build`
+
+==================================================
+1) Core Analysis Flow
+==================================================
+
+1. Analyze by mint address
+- Paste valid mint and click Analyze.
+- Expected: score panel updates and no crash.
+
+2. Analyze by token search
+- Type token name, pick suggestion, auto-analysis runs.
+- Expected: right panel updates for selected token.
+
+3. Table click analysis
+- Click 3 different tokens from top table.
+- Expected: consistent right panel updates, no black/blank screen.
+
+4. Analyzer input UX
+- Click token from table (without focusing analyzer input first).
+- Expected: no misleading "second input field" effect from suggestions dropdown.
+
+==================================================
+2) Explainability and Warnings
+==================================================
+
+1. "Why Score Changed" block
+- Expected: visible delta, transition text, and movement summary.
+
+2. History filter 24h/7d
+- Toggle 24h -> 7d -> 24h.
+- Expected: chart + point count update by selected window.
+
+3. Sparse history state
+- For token with low history points, switch windows.
+- Expected: clear "Need at least 2 points..." message, no layout break.
+
+4. Warning readability
+- Use token that returns long provider warnings.
+- Expected:
+  - warning title readable
+  - provider lines split cleanly
+  - text wraps correctly (no unreadable single-line overflow)
+
+==================================================
+3) Top Tokens Table Loading UX
+==================================================
+
+1. Initial load behavior
+- Open page with clean load.
+- Expected: skeleton rows appear before first risk data set is ready.
+
+2. Risk reveal behavior
+- After first load, risk should not fill one-by-one per token.
+- Expected: risk data appears as a completed set, then rows reveal with stagger animation.
+
+3. Post-load interaction
+- Click token row after reveal.
+- Expected: selection and analysis still work normally.
+
+==================================================
+4) Watchlist and Alerts
+==================================================
+
+1. Favorite add/remove
+- Add token via star, then remove it.
+- Expected: watchlist count updates correctly.
+
+2. Threshold controls (5/10/15)
+- Change threshold and run checks.
+- Expected: alert sensitivity follows selected threshold.
+
+3. Severity labels
+- Confirm alert cards show minor/major/critical when applicable.
+
+4. Alert filter
+- Switch All -> Critical.
+- Expected: only critical alerts shown (or valid empty state).
+
+5. Mute/Snooze controls
+- Apply Mute and Snooze 1h on watchlist token.
+- Expected:
+  - button state reflects mode
+  - alerts are suppressed accordingly
+  - no duplicated muted/snoozed label next to token name
+
+6. "Check now" feedback
+- Click Check now.
+- Expected:
+  - button changes to "Checking..."
+  - button disabled while running
+  - "Last check completed at ..." is shown after finish
+
+7. Watchlist layout containment
+- Add several tokens with long names/mints.
+- Expected: token cards stay fully inside right panel, no horizontal overflow.
+
+==================================================
+5) Persistence / Reload
+==================================================
+
+1. Reload after settings changes
+- Expected persisted:
+  - watchlist items
+  - threshold selection
+  - alert feed
+  - mute/snooze states
+
+2. Remove token from watchlist
+- Expected: related alert preferences and alert rows for that mint are cleaned.
+
+==================================================
+6) Reliability / Fallback Behavior
+==================================================
+
+1. Background fetch stability
+- Let app run for multiple auto-refresh cycles.
+- Expected: no crashes and no panel corruption.
+
+2. Slow provider resilience
+- When one provider is slow/fails, app should recover via retry/fallback.
+- Expected: transient failures do not permanently break table/history/watchlist.
+
+3. Invalid input handling
+- Force one invalid analyze input.
+- Expected: clear validation message, UI remains interactive.
+
+==================================================
+7) Week 2 Exit Criteria
+==================================================
+
+- Build passes.
+- No critical UI crashes.
+- Explainability and history filters work.
+- Alerts support threshold + severity + critical filter.
+- Watchlist controls (mute/snooze/remove/check now) behave correctly.
+- Persistence survives reload for key states.
+- Top table initial load UX is stable and readable.

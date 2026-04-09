@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { TokenSearchItem } from "../types";
 
@@ -24,10 +25,23 @@ export function AnalyzerForm(props: AnalyzerFormProps) {
     isLinkedMode
   } = props;
 
+  const [inputFocused, setInputFocused] = useState(false);
+  const blurTimerRef = useRef<number | null>(null);
+
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     await onAnalyze();
   };
+
+  const showSuggestions = inputFocused && mint.trim() && suggestions.length > 0;
+
+  useEffect(() => {
+    return () => {
+      if (blurTimerRef.current) {
+        window.clearTimeout(blurTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
     <section
@@ -47,19 +61,41 @@ export function AnalyzerForm(props: AnalyzerFormProps) {
               id="mint"
               value={mint}
               onChange={(event) => onMintChange(event.target.value)}
+              onFocus={() => {
+                if (blurTimerRef.current) {
+                  window.clearTimeout(blurTimerRef.current);
+                  blurTimerRef.current = null;
+                }
+                setInputFocused(true);
+              }}
+              onBlur={() => {
+                blurTimerRef.current = window.setTimeout(() => {
+                  setInputFocused(false);
+                }, 120);
+              }}
               placeholder="Mint address or token name"
               required
               aria-label="Mint address or token name"
               autoComplete="off"
               className="w-full min-w-0 border border-tl-border bg-[#050505] px-3 py-3 text-sm text-tl-text outline-none focus:outline focus:outline-1 focus:outline-blue-400"
             />
-            {mint.trim() && suggestions.length > 0 ? (
+            {showSuggestions ? (
               <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto border border-tl-border bg-[#050505]">
                 {suggestions.map((token) => (
                   <li key={token.mint}>
                     <button
                       type="button"
-                      onClick={() => onSelectSuggestion(token)}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                      }}
+                      onClick={() => {
+                        if (blurTimerRef.current) {
+                          window.clearTimeout(blurTimerRef.current);
+                          blurTimerRef.current = null;
+                        }
+                        setInputFocused(false);
+                        onSelectSuggestion(token);
+                      }}
                       className="flex w-full items-center justify-between gap-3 border-b border-tl-border px-3 py-2 text-left hover:bg-[#111111]"
                     >
                       <span className="min-w-0">
