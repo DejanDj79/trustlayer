@@ -69,6 +69,12 @@ Completed in Week 2
 - Added retry+backoff strategy for unstable read paths.
 - Applied to top tokens, score refresh, token search/profile/history.
 
+10) Panel architecture and branding polish
+- Split "Recent alerts" into its own collapsible block below Favorites watchlist.
+- Kept watchlist-focused controls inside watchlist and alerts-focused controls in alerts block.
+- Added project SVG branding in header and favicon (`stl.svg`).
+- Updated app title and header naming to "SolanaTrustLayer".
+
 ==================================================
 Main Files Touched
 ==================================================
@@ -78,6 +84,8 @@ Main Files Touched
 - apps/web/src/components/AnalyzerForm.tsx
 - apps/web/src/components/WatchlistPanel.tsx
 - apps/web/src/components/ScoreResult.tsx
+- apps/web/src/components/Header.tsx
+- apps/web/index.html
 - apps/web/src/lib/api.ts
 - apps/web/src/types.ts
 

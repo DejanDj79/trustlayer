@@ -40,11 +40,12 @@ Exact Click Flow
   - "Last check completed at ..." status.
 
 00:50 - 00:57
+- Open separate "Recent alerts" collapsible (below watchlist).
 - Show Alerts filter All -> Critical.
 - If no critical alerts, keep empty-state message briefly.
 
 00:57 - 01:00
-- Return to full panel view and hold steady end frame.
+- Return to full panel view and hold steady end frame (header logo visible).
 
 ==================================================
 Voiceover Short Version (Optional)

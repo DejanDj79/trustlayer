@@ -20,7 +20,8 @@ The graph, point count, and movement context adapt to the selected time window.
 
 Third, we upgraded watchlist monitoring.
 Users can set threshold sensitivity to 5, 10, or 15 points, review alert severities,
-filter to critical-only mode, and run an immediate "Check now" refresh with visible status feedback.
+filter to critical-only mode in a dedicated recent-alerts section, and run an immediate
+"Check now" refresh with visible status feedback.
 
 We also hardened state persistence.
 Watchlist items, threshold, alert feed, and mute/snooze states now survive reload reliably.
@@ -72,8 +73,8 @@ Capture:
 - "Last check completed at ..."
 
 00:53 - 01:03
-Shot: Alert filter.
-Action: All -> Critical.
+Shot: Separate Recent alerts section.
+Action: open Recent alerts collapsible and switch All -> Critical.
 Capture: either critical entries or valid empty state.
 
 01:03 - 01:10

@@ -108,6 +108,11 @@ Quick validation command:
 - Add several tokens with long names/mints.
 - Expected: token cards stay fully inside right panel, no horizontal overflow.
 
+8. Watchlist vs Recent alerts separation
+- Open watchlist and confirm token cards are visible without alerts mixed inside.
+- Open separate "Recent alerts" collapsible below watchlist.
+- Expected: watchlist and alert controls/content are clearly split into two blocks.
+
 ==================================================
 5) Persistence / Reload
 ==================================================

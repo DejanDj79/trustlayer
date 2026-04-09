@@ -22,6 +22,10 @@ STATUS SNAPSHOT (as of 09 Apr 2026)
   - initial skeleton
   - aggregated risk hydration
   - stagger reveal.
+- [DONE] Final Week 2 UI architecture polish:
+  - separate "Recent alerts" collapsible below watchlist
+  - improved long-row containment in alerts list
+  - branded header/logo + favicon (`stl.svg`).
 - [IN PROGRESS] Reliability tuning i scoring quality calibration.
 - [TODO] Observability stack (Sentry + detailed backend metrics) i production deployment.
 

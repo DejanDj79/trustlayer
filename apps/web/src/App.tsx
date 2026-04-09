@@ -193,6 +193,7 @@ export default function App() {
   const [watchlistAlertThresholdHydrated, setWatchlistAlertThresholdHydrated] = useState(false);
   const [watchlistAlertFilter, setWatchlistAlertFilter] = useState<"all" | "critical">("all");
   const [isWatchlistOpen, setIsWatchlistOpen] = useState(false);
+  const [isRecentAlertsOpen, setIsRecentAlertsOpen] = useState(true);
   const [watchlistRefreshLoading, setWatchlistRefreshLoading] = useState(false);
   const [watchlistLastCheckedAt, setWatchlistLastCheckedAt] = useState<string | null>(null);
 
@@ -1228,147 +1229,182 @@ export default function App() {
                       showHeader={false}
                       compact
                     />
-                    <div className="mt-2 border border-tl-border bg-black px-3 py-2">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.06em] text-zinc-300">
-                          Recent alerts
-                        </p>
-                        {watchlistAlerts.length > 0 ? (
-                          <button
-                            type="button"
-                            onClick={() => setWatchlistAlerts([])}
-                            className="text-[11px] text-zinc-400 hover:text-zinc-200"
-                          >
-                            Clear
-                          </button>
-                        ) : null}
-                      </div>
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">
-                          Alert threshold
-                        </p>
-                        <div className="flex items-center gap-1">
-                          {WATCHLIST_ALERT_THRESHOLD_OPTIONS.map((value) => (
-                            <button
-                              key={value}
-                              type="button"
-                              onClick={() => setWatchlistAlertThreshold(value)}
-                              className={`border px-1.5 py-0.5 text-[10px] font-semibold ${
-                                watchlistAlertThreshold === value
-                                  ? "border-sky-500/50 bg-sky-950/40 text-sky-300"
-                                  : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
-                              }`}
-                            >
-                              {value} pts
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <p className="mb-2 text-[11px] text-zinc-500">
-                        Threshold applies to new watchlist alerts during checks. Score History uses
-                        historical snapshots and does not change with threshold.
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => setIsRecentAlertsOpen((current) => !current)}
+                  aria-expanded={isRecentAlertsOpen}
+                  className="mt-2 w-full border border-tl-border bg-black px-3 py-2 text-left transition-colors duration-150 hover:bg-[#101010]"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-display text-sm font-semibold text-tl-text">Recent alerts</span>
+                    <span className="text-xs text-tl-muted">{watchlistAlerts.length} alert(s)</span>
+                  </div>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="rounded-sm border border-zinc-700/70 bg-zinc-900/70 px-1.5 py-0.5 text-[10px] font-semibold text-zinc-300">
+                        threshold {watchlistAlertThreshold}
+                      </span>
+                      {criticalAlertsCount > 0 ? (
+                        <span className="rounded-sm border border-red-500/60 bg-red-950/60 px-1.5 py-0.5 text-[10px] font-semibold text-red-200">
+                          {criticalAlertsCount} critical
+                        </span>
+                      ) : null}
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className={`inline-block text-sm text-tl-muted transition-transform duration-150 ${
+                        isRecentAlertsOpen ? "rotate-180" : ""
+                      }`}
+                    >
+                      ▾
+                    </span>
+                  </div>
+                </button>
+
+                {isRecentAlertsOpen ? (
+                  <div className="border-x border-b border-tl-border px-3 py-2">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-xs font-semibold uppercase tracking-[0.06em] text-zinc-300">
+                        Recent alerts
                       </p>
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">Quick test</p>
+                      {watchlistAlerts.length > 0 ? (
                         <button
                           type="button"
-                          onClick={() => {
-                            void refreshWatchlistScores({ interactive: true });
-                          }}
-                          disabled={watchlistItems.length === 0 || watchlistRefreshLoading}
-                          className="border border-tl-border bg-black px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-300 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={() => setWatchlistAlerts([])}
+                          className="text-[11px] text-zinc-400 hover:text-zinc-200"
                         >
-                          {watchlistRefreshLoading ? "Checking..." : "Check now"}
+                          Clear
                         </button>
-                      </div>
-                      <p className="mb-2 text-[11px] text-zinc-500">
-                        {watchlistRefreshLoading
-                          ? "Running watchlist refresh..."
-                          : watchlistLastCheckedAt
-                            ? `Last check completed at ${formatCheckTimestamp(watchlistLastCheckedAt)}`
-                            : "No manual check yet."}
+                      ) : null}
+                    </div>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">
+                        Alert threshold
                       </p>
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">Filter</p>
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1">
+                        {WATCHLIST_ALERT_THRESHOLD_OPTIONS.map((value) => (
                           <button
+                            key={value}
                             type="button"
-                            onClick={() => setWatchlistAlertFilter("all")}
-                            className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-                              watchlistAlertFilter === "all"
+                            onClick={() => setWatchlistAlertThreshold(value)}
+                            className={`border px-1.5 py-0.5 text-[10px] font-semibold ${
+                              watchlistAlertThreshold === value
                                 ? "border-sky-500/50 bg-sky-950/40 text-sky-300"
                                 : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
                             }`}
                           >
-                            All
+                            {value} pts
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setWatchlistAlertFilter("critical")}
-                            className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
-                              watchlistAlertFilter === "critical"
-                                ? "border-red-500/50 bg-red-950/40 text-red-300"
-                                : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
-                            }`}
-                          >
-                            Critical
-                          </button>
-                        </div>
+                        ))}
                       </div>
-
-                      {watchlistAlerts.length === 0 ? (
-                        <p className="text-xs text-tl-muted">
-                          Alerts trigger when a watchlist token score moves by at least{" "}
-                          {watchlistAlertThreshold} points between checks.
-                        </p>
-                      ) : visibleWatchlistAlerts.length === 0 ? (
-                        <p className="text-xs text-tl-muted">No alerts in selected filter.</p>
-                      ) : (
-                        <ul className="grid gap-1.5">
-                          {visibleWatchlistAlerts.slice(0, 8).map((alert) => (
-                            <li key={alert.id} className="min-w-0">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setSelectedMint(
-                                    topTokens.some((token) => token.mint === alert.mint) ? alert.mint : null
-                                  );
-                                  setMint(alert.mint);
-                                  void analyzeMint(alert.mint);
-                                }}
-                                className="flex w-full min-w-0 items-center justify-between gap-2 overflow-hidden text-left"
-                              >
-                                <span className="min-w-0 flex-1 text-xs text-zinc-300">
-                                  <span className="block truncate font-semibold text-zinc-200">
-                                    {alert.name || alert.symbol || "Token"}
-                                  </span>
-                                  <span className="block truncate text-[11px] text-zinc-500">
-                                    {alert.symbol || "N/A"} · {formatAlertTimestamp(alert.createdAt)}
-                                  </span>
-                                </span>
-                                <span className="flex shrink-0 items-center gap-2">
-                                  <span
-                                    className={`rounded-sm border px-1 py-0.5 text-[10px] font-semibold uppercase ${alertSeverityClass(
-                                      alert.severity || alertSeverityFromDelta(alert.delta)
-                                    )}`}
-                                  >
-                                    {alert.severity || alertSeverityFromDelta(alert.delta)}
-                                  </span>
-                                  <span
-                                    className={`text-xs font-bold ${
-                                      alert.delta >= 0 ? "text-red-400" : "text-green-300"
-                                    }`}
-                                  >
-                                    {alert.delta >= 0 ? "+" : ""}
-                                    {Math.round(alert.delta)} pts
-                                  </span>
-                                </span>
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
                     </div>
+                    <p className="mb-2 text-[11px] text-zinc-500">
+                      Threshold applies to new watchlist alerts during checks. Score History uses
+                      historical snapshots and does not change with threshold.
+                    </p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">Quick test</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void refreshWatchlistScores({ interactive: true });
+                        }}
+                        disabled={watchlistItems.length === 0 || watchlistRefreshLoading}
+                        className="border border-tl-border bg-black px-1.5 py-0.5 text-[10px] font-semibold uppercase text-zinc-300 hover:text-zinc-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {watchlistRefreshLoading ? "Checking..." : "Check now"}
+                      </button>
+                    </div>
+                    <p className="mb-2 text-[11px] text-zinc-500">
+                      {watchlistRefreshLoading
+                        ? "Running watchlist refresh..."
+                        : watchlistLastCheckedAt
+                          ? `Last check completed at ${formatCheckTimestamp(watchlistLastCheckedAt)}`
+                          : "No manual check yet."}
+                    </p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[11px] uppercase tracking-[0.06em] text-zinc-500">Filter</p>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setWatchlistAlertFilter("all")}
+                          className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                            watchlistAlertFilter === "all"
+                              ? "border-sky-500/50 bg-sky-950/40 text-sky-300"
+                              : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWatchlistAlertFilter("critical")}
+                          className={`border px-1.5 py-0.5 text-[10px] font-semibold uppercase ${
+                            watchlistAlertFilter === "critical"
+                              ? "border-red-500/50 bg-red-950/40 text-red-300"
+                              : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          Critical
+                        </button>
+                      </div>
+                    </div>
+
+                    {watchlistAlerts.length === 0 ? (
+                      <p className="text-xs text-tl-muted">
+                        Alerts trigger when a watchlist token score moves by at least{" "}
+                        {watchlistAlertThreshold} points between checks.
+                      </p>
+                    ) : visibleWatchlistAlerts.length === 0 ? (
+                      <p className="text-xs text-tl-muted">No alerts in selected filter.</p>
+                    ) : (
+                      <ul className="grid gap-1.5">
+                        {visibleWatchlistAlerts.slice(0, 8).map((alert) => (
+                          <li key={alert.id} className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedMint(
+                                  topTokens.some((token) => token.mint === alert.mint) ? alert.mint : null
+                                );
+                                setMint(alert.mint);
+                                void analyzeMint(alert.mint);
+                              }}
+                              className="flex w-full min-w-0 items-center justify-between gap-2 overflow-hidden text-left"
+                            >
+                              <span className="min-w-0 flex-1 text-xs text-zinc-300">
+                                <span className="block truncate font-semibold text-zinc-200">
+                                  {alert.name || alert.symbol || "Token"}
+                                </span>
+                                <span className="block truncate text-[11px] text-zinc-500">
+                                  {alert.symbol || "N/A"} · {formatAlertTimestamp(alert.createdAt)}
+                                </span>
+                              </span>
+                              <span className="flex shrink-0 items-center gap-2">
+                                <span
+                                  className={`rounded-sm border px-1 py-0.5 text-[10px] font-semibold uppercase ${alertSeverityClass(
+                                    alert.severity || alertSeverityFromDelta(alert.delta)
+                                  )}`}
+                                >
+                                  {alert.severity || alertSeverityFromDelta(alert.delta)}
+                                </span>
+                                <span
+                                  className={`text-xs font-bold ${
+                                    alert.delta >= 0 ? "text-red-400" : "text-green-300"
+                                  }`}
+                                >
+                                  {alert.delta >= 0 ? "+" : ""}
+                                  {Math.round(alert.delta)} pts
+                                </span>
+                              </span>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ) : null}
               </section>
