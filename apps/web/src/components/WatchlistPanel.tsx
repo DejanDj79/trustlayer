@@ -30,10 +30,7 @@ function WatchlistLogo({ item }: { item: WatchlistItem }) {
   const imageUrl = (item.imageUrl || "").trim() || fallbackLogoUrlForMint(item.mint);
   const showImage = Boolean(imageUrl) && !imageFailed;
   return (
-    <div
-      className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full border border-tl-border bg-transparent text-[10px] font-extrabold text-tl-text"
-      style={{ borderRadius: "9999px", clipPath: "circle(50% at 50% 50%)" }}
-    >
+    <div className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-transparent text-[10px] font-extrabold text-tl-text ring-1 ring-tl-border/70">
       {!showImage ? <span>{initials(item.symbol, item.name)}</span> : null}
       {showImage ? (
         <img
@@ -42,8 +39,7 @@ function WatchlistLogo({ item }: { item: WatchlistItem }) {
           loading="lazy"
           decoding="async"
           onError={() => setImageFailed(true)}
-          className="absolute inset-0 h-full w-full rounded-full object-cover"
-          style={{ borderRadius: "9999px", clipPath: "circle(50% at 50% 50%)" }}
+          className="absolute inset-0 h-full w-full object-cover"
         />
       ) : null}
     </div>

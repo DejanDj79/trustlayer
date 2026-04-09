@@ -1326,7 +1326,7 @@ export default function App() {
                       ) : (
                         <ul className="grid gap-1.5">
                           {visibleWatchlistAlerts.slice(0, 8).map((alert) => (
-                            <li key={alert.id}>
+                            <li key={alert.id} className="min-w-0">
                               <button
                                 type="button"
                                 onClick={() => {
@@ -1336,9 +1336,9 @@ export default function App() {
                                   setMint(alert.mint);
                                   void analyzeMint(alert.mint);
                                 }}
-                                className="flex w-full items-center justify-between gap-2 text-left"
+                                className="flex w-full min-w-0 items-center justify-between gap-2 overflow-hidden text-left"
                               >
-                                <span className="min-w-0 text-xs text-zinc-300">
+                                <span className="min-w-0 flex-1 text-xs text-zinc-300">
                                   <span className="block truncate font-semibold text-zinc-200">
                                     {alert.name || alert.symbol || "Token"}
                                   </span>
@@ -1346,7 +1346,7 @@ export default function App() {
                                     {alert.symbol || "N/A"} · {formatAlertTimestamp(alert.createdAt)}
                                   </span>
                                 </span>
-                                <span className="flex items-center gap-2">
+                                <span className="flex shrink-0 items-center gap-2">
                                   <span
                                     className={`rounded-sm border px-1 py-0.5 text-[10px] font-semibold uppercase ${alertSeverityClass(
                                       alert.severity || alertSeverityFromDelta(alert.delta)
@@ -1376,10 +1376,7 @@ export default function App() {
               {activeMint ? (
                 <section className="h-[128px] bg-transparent px-4 pb-3 pt-3">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-full border border-tl-border bg-transparent text-xs font-extrabold text-tl-text"
-                      style={{ borderRadius: "9999px", clipPath: "circle(50% at 50% 50%)" }}
-                    >
+                    <div className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-transparent text-xs font-extrabold text-tl-text ring-1 ring-tl-border/70">
                       {!showActiveTokenImage ? (
                         <span>{initials(activeTokenSymbol, activeTokenName)}</span>
                       ) : null}
@@ -1390,8 +1387,7 @@ export default function App() {
                           loading="lazy"
                           decoding="async"
                           onError={() => setActiveImageFailed(true)}
-                          className="absolute inset-0 h-full w-full rounded-full object-cover"
-                          style={{ borderRadius: "9999px", clipPath: "circle(50% at 50% 50%)" }}
+                          className="absolute inset-0 h-full w-full object-cover"
                         />
                       ) : null}
                     </div>

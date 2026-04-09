@@ -30,10 +30,7 @@ function TokenLogo({ token }: { token: TopToken }) {
   const showImage = Boolean(imageUrl) && !imageFailed;
 
   return (
-    <div
-      className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full border border-tl-border bg-transparent text-xs font-extrabold text-tl-text"
-      style={{ borderRadius: "9999px", clipPath: "circle(50% at 50% 50%)" }}
-    >
+    <div className="relative grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-transparent text-xs font-extrabold text-tl-text ring-1 ring-tl-border/70">
       {!showImage ? <span>{initials(token.symbol, token.name)}</span> : null}
       {showImage ? (
         <img
@@ -42,8 +39,7 @@ function TokenLogo({ token }: { token: TopToken }) {
           loading="lazy"
           decoding="async"
           onError={() => setImageFailed(true)}
-          className="absolute inset-0 h-full w-full rounded-full object-cover"
-          style={{ borderRadius: "9999px", clipPath: "circle(50% at 50% 50%)" }}
+          className="absolute inset-0 h-full w-full object-cover"
         />
       ) : null}
     </div>
