@@ -1,0 +1,103 @@
+Frontier Hackathon - Week 3 Video
+Project: TrustLayer
+Format: Screen-only demo (no face camera)
+Target length: 60-75 seconds
+
+==================================================
+1) Voiceover Script (Week 3 Final, Relative to Week 2)
+==================================================
+
+Hi everyone, this is our Week 3 update for TrustLayer.
+
+In Week 2 we focused on explainability and alert reliability.
+In Week 3 we focused on transparency, product polish, and judge-ready clarity.
+
+The biggest upgrade is score transparency.
+We introduced a new Score Math section that shows weighted contributions,
+base score, final score, and any penalty or cap adjustments.
+So users can now verify how the score is formed, not just read the final number.
+
+We also added a direct methodology flow and API health access from the header.
+This makes it easier to understand the scoring model and quickly validate backend status during demos.
+
+Next, we improved comparative analysis with token A versus token B mode,
+so users can quickly see which token appears safer and why.
+
+On reliability and QA, we added a dedicated Week 3 smoke suite that validates
+top tokens, score, score breakdown, compare, search, history, and profile endpoints
+in one repeatable command.
+
+Week 3 turns TrustLayer from a working prototype into a transparent and demo-ready risk product.
+Next, Week 4 will focus on hardening and reliability tuning under provider constraints.
+
+==================================================
+2) Shot List (Screen Recording Guide)
+==================================================
+
+Timeline guide (about 70 sec total):
+
+00:00 - 00:06
+Shot: Open app full layout.
+Action: Hold steady.
+Overlay (optional): "TrustLayer - Week 3 Checkpoint"
+
+00:06 - 00:18
+Shot: Select one token from table and open right panel result.
+Action: click row -> wait for score card to render.
+Capture: score, risk label, confidence.
+
+00:18 - 00:34
+Shot: Score Math block.
+Action: scroll to "Score Math" and hold.
+Capture:
+- weighted component lines
+- base score vs final score
+- adjustment row (if present)
+Overlay (optional): "Transparent scoring math"
+
+00:34 - 00:44
+Shot: Header controls.
+Action: click "Methodology" -> show formula block -> close.
+Then briefly open API health in new tab (or show URL hover).
+Capture: methodology clarity + API accessibility.
+
+00:44 - 00:58
+Shot: Compare panel.
+Action:
+- open compare
+- select token B
+- run compare
+Capture: side-by-side scores + comparison summary sentence.
+
+00:58 - 01:08
+Shot: Warnings + diagnostics toggle.
+Action: toggle provider diagnostics on/off.
+Capture: compact warning vs detailed provider lines.
+
+01:08 - 01:15
+Shot: End frame.
+Overlay (optional):
+"Week 3: Transparency + Compare + QA Hardening"
+
+==================================================
+3) Recording Checklist
+==================================================
+
+- Browser zoom 100%, full-screen app window.
+- Keep one token ready that has visible warnings.
+- Keep second token prepared for compare flow.
+- Record two takes:
+  - Take A: normal pace
+  - Take B: slower, safer pacing
+- Keep scrolling minimal and intentional.
+
+==================================================
+4) Editing Notes
+==================================================
+
+- Use clean cuts, no heavy transitions.
+- Prefer short captions focused on one feature per shot.
+- If an adjustment row is not visible in Score Math for current token, narrate that
+  adjustments appear only when penalties/caps are applied.
+- Export 1080p, 30fps.
+- Keep final duration between 60 and 75 seconds.

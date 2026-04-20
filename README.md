@@ -12,8 +12,10 @@ TrustLayer is a Solana token risk scoring MVP for hackathon demos.
 - API (`apps/api`) with:
   - `GET /health`
   - `GET /v1/score/:mint`
+  - `GET /v1/score-breakdown/:mint` (transparent formula output)
   - `GET /v1/history/:mint?limit=40` (in-memory score timeline by mint)
   - `GET /v1/top-tokens?limit=20` (CoinGecko-backed market list + fallback + logo enrichment)
+  - `GET /v1/compare?mintA=&mintB=` (A/B risk compare)
   - multi-RPC failover and provider diagnostics
   - holder concentration fallback logic
   - confidence-aware status policy (`green` only with `high` confidence)
@@ -22,8 +24,10 @@ TrustLayer is a Solana token risk scoring MVP for hackathon demos.
   - mint input and analysis CTA
   - market table with top Solana tokens (CoinGecko/Coinbase-style UX)
   - score ring, status, confidence, signal breakdown
+  - score transparency panel ("Score Math" with weighted contributions + adjustments)
   - liquidity/volume/tx/pools metrics
   - RPC health and warning panels
+  - compare mode and watchlist monitoring panel
   - empty/loading/error states for demo stability
 
 ## Quick start
@@ -66,6 +70,16 @@ Custom mint set:
 cd /home/agar/trustlayer
 ./scripts/smoke_api.sh So11111111111111111111111111111111111111112 EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v
 ```
+
+## Week 3 QA smoke
+
+```bash
+cd /home/agar/trustlayer
+npm run qa:week3
+```
+
+Checklist:
+- `docs/frontier_week3_qa_checklist_en.txt`
 
 ## Golden benchmark (scoring tuning)
 

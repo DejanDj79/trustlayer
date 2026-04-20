@@ -1,0 +1,56 @@
+TrustLayer - Week 3 Demo Flow (90s)
+
+Goal:
+- Show that TrustLayer is not only scoring tokens, but also explaining score math transparently.
+
+Timing:
+- 90 seconds total.
+
+--------------------------------------------------
+0-15s: Entry + positioning
+--------------------------------------------------
+- Open app home.
+- Show header actions:
+  - Methodology
+  - API
+- Voiceover:
+  - "TrustLayer gives pre-trade Solana token risk visibility, with transparent score math."
+
+--------------------------------------------------
+15-35s: Analyze one token
+--------------------------------------------------
+- Click a token from top table (or analyze from input).
+- Let right panel load score.
+- Voiceover:
+  - "Each token gets a 0-100 score where higher means lower risk."
+
+--------------------------------------------------
+35-60s: Score transparency
+--------------------------------------------------
+- Scroll to "Score Math".
+- Highlight:
+  - weighted components
+  - base score
+  - final score
+  - adjustments (if present)
+- Voiceover:
+  - "We expose weighted contributions and any penalty/cap adjustments, so score is auditable."
+
+--------------------------------------------------
+60-75s: Reliability diagnostics
+--------------------------------------------------
+- Show RPC Health + Warnings section.
+- Toggle provider diagnostics.
+- Voiceover:
+  - "Confidence and provider diagnostics make data quality explicit, not hidden."
+
+--------------------------------------------------
+75-90s: Compare or monitor
+--------------------------------------------------
+- Open Compare panel and run A/B compare once.
+- Or open watchlist + alerts quickly.
+- Voiceover:
+  - "You can compare tokens side by side and monitor watchlist drift over time."
+
+End line:
+- "Week 3 focused on explainability, reliability, and judge-ready UX."

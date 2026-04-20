@@ -1,0 +1,74 @@
+TrustLayer - Week 3 QA Run Report
+Date: 2026-04-20
+Environment: User local machine (`agar@agar-Lenovo`)
+
+==================================================
+Automated Checks Executed
+==================================================
+
+1) Week 3 API/flow smoke suite
+- Command: `npm run qa:week3`
+- Result: PASS
+- Runtime output highlights:
+  - health ok | providers=3 | cacheEntries=21
+  - top tokens ok | count=20 | source=coingecko
+  - compare endpoint ok
+  - token-search ok | query="USDT" | hits=8
+  - history + token profile endpoints ok
+
+2) Sample scoring distribution (12 mints from top tokens)
+- green: 0
+- yellow: 2
+- red: 10
+- heuristicWarningMints: 10
+
+Interpretation:
+- Platform stability and endpoint contract behavior are validated.
+- Data quality is currently constrained by RPC/provider quality for a large share of sampled mints,
+  which explains high heuristic fallback usage and conservative (red/yellow) outcomes.
+
+==================================================
+What This Confirms
+==================================================
+
+1) Week 3 features are operational in integrated flow
+- score endpoint
+- score breakdown endpoint
+- compare endpoint
+- token search
+- history
+- token profile
+- top tokens feed
+
+2) Transparency layer is technically active
+- breakdown data exists per score
+- flow remains functional under fallback conditions
+
+3) QA pipeline is repeatable
+- single command can be re-run before each checkpoint or weekly video.
+
+==================================================
+Known Risks / Follow-up for Week 4
+==================================================
+
+1) High fallback ratio in sampled run
+- Symptom: many warnings with heuristic mode.
+- Impact: confidence and score distribution may look overly conservative.
+- Week 4 action:
+  - improve provider mix and endpoint compatibility
+  - tighten fallback messaging and confidence UX.
+
+2) Distribution tuning for demo communication
+- Current run is valid but visually harsh (10/12 red).
+- Week 4 action:
+  - review scoring guardrails/penalties against top-token baseline
+  - ensure risk outputs remain strict but not misleading.
+
+==================================================
+Release Readiness Note (Week 3 checkpoint)
+==================================================
+
+- Automated QA gate: PASS
+- Critical endpoint coverage: PASS
+- Proceed to Week 3 review/demo packaging, with explicit note that provider reliability
+  is the primary external variable affecting confidence quality.

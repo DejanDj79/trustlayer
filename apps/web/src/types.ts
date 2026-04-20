@@ -36,16 +36,80 @@ export interface RpcHealth {
   tokenSupply?: RpcHealthItem;
 }
 
+export interface ScoreBreakdownComponent {
+  key: string;
+  label: string;
+  weightPct: number;
+  signalLabel?: string;
+  signalValue?: number | null;
+  signalUnit?: string | null;
+  normalizedSignal?: number | null;
+  contribution: number;
+}
+
+export interface ScoreBreakdownAdjustment {
+  type: string;
+  key: string;
+  label: string;
+  delta: number;
+  beforeScore: number;
+  afterScore: number;
+  note?: string | null;
+  cap?: number | null;
+  tier?: string | null;
+}
+
+export interface ScoreBreakdown {
+  formulaVersion: string;
+  maxScore: number;
+  weights: Record<string, number>;
+  baseScore: number;
+  baseScoreRaw: number;
+  components: ScoreBreakdownComponent[];
+  adjustments: ScoreBreakdownAdjustment[];
+  finalScore: number;
+  impliedStatus: RiskStatus;
+  finalStatus: RiskStatus;
+  scoreConfidence?: ScoreConfidence;
+  statusDowngraded?: boolean;
+  statusDowngradeReason?: string | null;
+}
+
 export interface ScoreResponse {
   mint: string;
   score: number;
   status: RiskStatus;
   scoreConfidence?: ScoreConfidence;
+  scoreBreakdown?: ScoreBreakdown | null;
   reasons?: string[];
   dataSource?: string;
   signalDetails?: TokenRiskSignals;
   rpcHealth?: RpcHealth;
   warnings?: string[];
+  generatedAt?: string;
+}
+
+export interface CompareTokenResult {
+  mint: string;
+  symbol?: string | null;
+  name?: string | null;
+  imageUrl?: string | null;
+  assessment: ScoreResponse;
+}
+
+export interface CompareResponse {
+  mintA: string;
+  mintB: string;
+  tokenA: CompareTokenResult;
+  tokenB: CompareTokenResult;
+  comparison: {
+    scoreDelta: number;
+    scoreA: number;
+    scoreB: number;
+    riskierMint: string | null;
+    saferMint: string | null;
+    summary: string;
+  };
   generatedAt?: string;
 }
 

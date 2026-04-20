@@ -42,6 +42,17 @@ function movementSummary(delta: number): string {
   return "Score moved sharply.";
 }
 
+function formatSignalValue(value: number | null | undefined, unit?: string | null): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "n/a";
+  }
+  if (unit === "pct") {
+    return `${numeric.toFixed(2)}%`;
+  }
+  return numeric.toFixed(2);
+}
+
 interface ParsedWarningEndpoint {
   provider: string;
   message: string;
@@ -136,6 +147,8 @@ export function ScoreResult({
   historyError = null
 }: ScoreResultProps) {
   const [historyWindow, setHistoryWindow] = useState<"24h" | "7d">("24h");
+  const [isGlossaryOpen, setIsGlossaryOpen] = useState(false);
+  const [showWarningDiagnostics, setShowWarningDiagnostics] = useState(false);
 
   if (isLoading) {
     return (
@@ -151,6 +164,13 @@ export function ScoreResult({
   const riskLabel = riskLabelFromBand(riskBand);
   const confidence = String(data.scoreConfidence || "unknown").toUpperCase();
   const details = data.signalDetails || {};
+  const scoreBreakdown = data.scoreBreakdown || null;
+  const breakdownComponents = Array.isArray(scoreBreakdown?.components)
+    ? scoreBreakdown.components
+    : [];
+  const breakdownAdjustments = Array.isArray(scoreBreakdown?.adjustments)
+    ? scoreBreakdown.adjustments
+    : [];
 
   const quickStats = [
     { label: "Liquidity", value: formatUsd(details.liquidityUsd) },
@@ -175,6 +195,15 @@ export function ScoreResult({
   const scoreDelta =
     latestHistory && previousHistory
       ? Number(latestHistory.score || 0) - Number(previousHistory.score || 0)
+      : null;
+  const historyScores = filteredHistory
+    .map((point) => Number(point.score))
+    .filter((value) => Number.isFinite(value));
+  const minHistoryScore = historyScores.length > 0 ? Math.min(...historyScores) : null;
+  const maxHistoryScore = historyScores.length > 0 ? Math.max(...historyScores) : null;
+  const currentHistoryScore =
+    latestHistory && Number.isFinite(Number(latestHistory.score))
+      ? Number(latestHistory.score)
       : null;
   const previousScore = previousHistory ? Number(previousHistory.score || 0) : null;
   const scoreDeltaNow = previousScore !== null ? score - previousScore : null;
@@ -214,7 +243,8 @@ export function ScoreResult({
               <p className="text-sm text-tl-muted">Confidence: {confidence}</p>
             </div>
             <p className="mt-1 text-xs text-tl-muted">
-              Risk level and confidence are different signals: one is score severity, the other is data reliability.
+              Higher score means lower risk. Risk level and confidence are different signals: one is
+              score severity, the other is data reliability.
             </p>
             <p className="mt-1 text-sm text-tl-muted">Data source: {data.dataSource || "unknown"}</p>
             {details.holderConcentrationSource ? (
@@ -309,6 +339,15 @@ export function ScoreResult({
                         : "n/a"}
                     </span>
                   </div>
+                  <div className="mt-1 grid grid-cols-3 gap-2 text-[11px] text-tl-muted">
+                    <span>Min: {minHistoryScore !== null ? Math.round(minHistoryScore) : "n/a"}</span>
+                    <span className="text-center">
+                      Current: {currentHistoryScore !== null ? Math.round(currentHistoryScore) : "n/a"}
+                    </span>
+                    <span className="text-right">
+                      Max: {maxHistoryScore !== null ? Math.round(maxHistoryScore) : "n/a"}
+                    </span>
+                  </div>
                 </>
               )}
             </div>
@@ -360,6 +399,115 @@ export function ScoreResult({
 
       <div className="grid gap-3">
         <article className="bg-transparent px-4 py-4">
+          <button
+            type="button"
+            onClick={() => setIsGlossaryOpen((current) => !current)}
+            className="flex w-full items-center justify-between border border-tl-border bg-black px-3 py-2 text-left transition-colors duration-150 hover:bg-[#101010]"
+          >
+            <span className="font-display text-base font-bold text-tl-text">Quick Glossary</span>
+            <span className="text-xs text-tl-muted">{isGlossaryOpen ? "Hide" : "Show"}</span>
+          </button>
+          {isGlossaryOpen ? (
+            <ul className="grid border-x border-b border-tl-border bg-black px-3 py-2">
+              {[
+                "Mint authority: if enabled, token supply can still be increased.",
+                "Freeze authority: if enabled, specific token accounts can be frozen.",
+                "Holder concentration: how much supply is held by the largest wallets.",
+                "Liquidity: available depth across tracked pools.",
+                "Activity: recent volume and transaction activity proxies.",
+                "Confidence: reliability of available data sources."
+              ].map((item) => (
+                <li key={item} className="border-b border-tl-border py-1.5 text-xs text-tl-muted last:border-b-0">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </article>
+
+        <article className="bg-transparent px-4 py-4">
+          <h3 className="font-display mb-2 text-base font-bold text-tl-text">Score Math</h3>
+          {breakdownComponents.length === 0 ? (
+            <p className="text-sm text-tl-muted">Score breakdown is unavailable for this response.</p>
+          ) : (
+            <>
+              <ul className="grid gap-2">
+                {breakdownComponents.map((component) => (
+                  <li key={component.key} className="bg-black px-3 py-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-tl-text">{component.label}</p>
+                        <p className="text-xs text-tl-muted">
+                          {component.signalLabel || "Signal"}:{" "}
+                          {formatSignalValue(component.signalValue, component.signalUnit)} | weight{" "}
+                          {component.weightPct}%
+                        </p>
+                      </div>
+                      <p className="text-sm font-bold text-sky-300">
+                        +{Number(component.contribution || 0).toFixed(2)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 border border-tl-border bg-black px-3 py-2 text-sm">
+                <div className="flex items-center justify-between gap-3 text-tl-muted">
+                  <p>Base score</p>
+                  <p className="font-semibold text-tl-text">
+                    {Math.round(Number(scoreBreakdown?.baseScore || 0))}{" "}
+                    <span className="text-xs text-tl-muted">
+                      ({Number(scoreBreakdown?.baseScoreRaw || 0).toFixed(2)} raw)
+                    </span>
+                  </p>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3 text-tl-muted">
+                  <p>Final score</p>
+                  <p className="font-semibold text-tl-text">
+                    {Math.round(Number(scoreBreakdown?.finalScore || score))}
+                  </p>
+                </div>
+              </div>
+              {breakdownAdjustments.length > 0 ? (
+                <ul className="mt-2 grid gap-2">
+                  {breakdownAdjustments.map((adjustment, index) => (
+                    <li key={`${adjustment.key}-${index}`} className="bg-black px-3 py-2">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm text-tl-text">{adjustment.label}</p>
+                        <p
+                          className={`text-sm font-semibold ${
+                            Number(adjustment.delta) < 0
+                              ? "text-red-300"
+                              : Number(adjustment.delta) > 0
+                                ? "text-green-300"
+                                : "text-tl-muted"
+                          }`}
+                        >
+                          {Number(adjustment.delta) > 0 ? "+" : ""}
+                          {Number(adjustment.delta).toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="mt-1 text-xs text-tl-muted">
+                        {Math.round(Number(adjustment.beforeScore || 0))}
+                        {" -> "}
+                        {Math.round(Number(adjustment.afterScore || 0))}
+                      </p>
+                      {adjustment.note ? (
+                        <p className="mt-1 text-xs text-tl-muted break-words">{adjustment.note}</p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {scoreBreakdown?.statusDowngraded && scoreBreakdown.statusDowngradeReason ? (
+                <p className="mt-2 text-xs text-amber-300 break-words">
+                  {scoreBreakdown.statusDowngradeReason}
+                </p>
+              ) : null}
+            </>
+          )}
+        </article>
+
+        <article className="bg-transparent px-4 py-4">
           <h3 className="font-display mb-2 text-base font-bold text-tl-text">Signal Breakdown</h3>
           <ul className="grid gap-2">
             {(data.reasons || []).map((reason, index) => (
@@ -395,7 +543,16 @@ export function ScoreResult({
 
       {Array.isArray(data.warnings) && data.warnings.length > 0 ? (
         <article className="border border-[#6e590f] bg-[#3a3006]/45 px-4 py-4">
-          <h3 className="font-display mb-2 text-lg font-bold text-[#f2dc8c]">Warnings</h3>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 className="font-display text-lg font-bold text-[#f2dc8c]">Warnings</h3>
+            <button
+              type="button"
+              onClick={() => setShowWarningDiagnostics((current) => !current)}
+              className="border border-[#6e590f] bg-[#2c2507]/70 px-2 py-1 text-xs text-[#f2dc8c] hover:bg-[#332a08]"
+            >
+              {showWarningDiagnostics ? "Hide provider diagnostics" : "Show provider diagnostics"}
+            </button>
+          </div>
           <ul className="grid gap-3">
             {data.warnings.map((warning, index) => {
               const parsed = parseWarning(warning);
@@ -410,7 +567,7 @@ export function ScoreResult({
                       {parsed.summary}
                     </p>
                   ) : null}
-                  {parsed.endpoints.length > 0 ? (
+                  {parsed.endpoints.length > 0 && showWarningDiagnostics ? (
                     <ul className="mt-2 grid gap-1.5 pl-4">
                       {parsed.endpoints.map((endpoint, endpointIndex) => (
                         <li
@@ -426,6 +583,10 @@ export function ScoreResult({
                         </li>
                       ))}
                     </ul>
+                  ) : parsed.endpoints.length > 0 ? (
+                    <p className="mt-2 text-xs text-[#dcc57a]">
+                      Provider diagnostics hidden. Expand to inspect endpoint-level failures.
+                    </p>
                   ) : null}
                 </li>
               );

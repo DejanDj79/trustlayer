@@ -1,0 +1,82 @@
+TrustLayer - Week 3 QA Checklist
+Date: 20 Apr 2026
+
+Purpose:
+- Verify Week 3 transparency + UX additions are stable before checkpoint/demo.
+
+Prerequisites:
+- API running at `http://127.0.0.1:8787`
+- Web app running locally
+
+--------------------------------------------------
+1) Automated smoke (required)
+--------------------------------------------------
+
+From repo root:
+
+1. `npm run qa:week3`
+
+Expected:
+- script ends with `[week3-qa] PASS`
+- checks include:
+  - `/health`
+  - `/v1/top-tokens`
+  - `/v1/score/:mint`
+  - `/v1/score-breakdown/:mint`
+  - `/v1/compare`
+  - `/v1/token-search`
+  - `/v1/history/:mint`
+  - `/v1/token/:mint`
+
+Optional env overrides:
+- `API_BASE=http://127.0.0.1:8787 npm run qa:week3`
+- `SCORE_SAMPLE=20 npm run qa:week3`
+- `REQUEST_TIMEOUT_MS=30000 npm run qa:week3`
+
+--------------------------------------------------
+2) Manual UI checks (required)
+--------------------------------------------------
+
+1. Pick token from top table
+- Expected:
+  - right panel loads score card
+  - "Score Math" section appears
+  - base score + final score visible
+
+2. Validate score math consistency
+- Compare:
+  - score shown in score card
+  - `finalScore` in "Score Math"
+- Expected: values match.
+
+3. Warnings readability
+- Toggle diagnostics in Warnings block.
+- Expected:
+  - default compact warning text
+  - provider-level lines visible only when expanded
+
+4. Methodology modal
+- Open from header.
+- Expected:
+  - formula weights match API contract
+  - modal closes by Close button and Escape key
+
+5. Compare panel
+- Compare active token vs token B.
+- Expected:
+  - both scores render
+  - summary sentence is present
+  - avatar + symbol info visible
+
+--------------------------------------------------
+3) Bug triage labels
+--------------------------------------------------
+
+- `blocker`: crash, blank page, broken API contract
+- `major`: wrong score/status display, missing critical section, layout overflow on core panels
+- `minor`: spacing/copy inconsistencies, non-critical styling glitches
+
+Exit criteria for Week 3:
+- no blocker bugs
+- all major bugs fixed or explicitly documented with workaround
+- smoke script passing on local machine

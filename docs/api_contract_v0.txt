@@ -47,6 +47,38 @@ Response 200:
     "Metadata confidence: 80.0%"
   ],
   "dataSource": "solana-rpc+dexscreener",
+  "scoreBreakdown": {
+    "formulaVersion": "2026.04-v1",
+    "maxScore": 100,
+    "weights": {
+      "holderSafety": 35,
+      "liquidityScore": 20,
+      "authoritySafety": 25,
+      "metadataScore": 10,
+      "activityScore": 10
+    },
+    "baseScore": 78,
+    "baseScoreRaw": 78.34,
+    "components": [
+      {
+        "key": "holderSafety",
+        "label": "Holder concentration safety",
+        "weightPct": 35,
+        "signalLabel": "Top 10 holders concentration",
+        "signalValue": 18,
+        "signalUnit": "pct",
+        "normalizedSignal": 0.82,
+        "contribution": 28.7
+      }
+    ],
+    "adjustments": [],
+    "finalScore": 78,
+    "impliedStatus": "green",
+    "finalStatus": "green",
+    "scoreConfidence": "high",
+    "statusDowngraded": false,
+    "statusDowngradeReason": null
+  },
   "signalDetails": {
     "mintAuthorityEnabled": false,
     "freezeAuthorityEnabled": false,
@@ -248,6 +280,76 @@ Holder concentration guardrails:
   - `signalDetails.scoreGuardrailApplied`
   - `signalDetails.scoreGuardrailTier` (`high` or `critical`)
   - `signalDetails.scoreGuardrailCap`
+
+Score transparency:
+- `scoreBreakdown.components[]` shows each weighted contribution.
+- `scoreBreakdown.adjustments[]` captures penalty/cap steps with before/after values.
+- `scoreBreakdown.finalScore` matches the top-level `score` field.
+
+--------------------------------------------------
+GET /v1/score-breakdown/:mint
+--------------------------------------------------
+
+Path params:
+- mint (string, base58, 32-44 chars)
+
+Response 200:
+{
+  "mint": "So11111111111111111111111111111111111111112",
+  "score": 78,
+  "status": "green",
+  "scoreConfidence": "high",
+  "scoreBreakdown": { "...": "same object as scoreBreakdown in /v1/score/:mint" },
+  "cache": {
+    "hit": true,
+    "ageMs": 1400,
+    "ttlMs": 45000
+  },
+  "generatedAt": "2026-04-20T00:00:00.000Z"
+}
+
+--------------------------------------------------
+GET /v1/compare?mintA=<mint>&mintB=<mint>
+--------------------------------------------------
+
+Query params:
+- `mintA` (required, base58, 32-44 chars)
+- `mintB` (required, base58, 32-44 chars)
+
+Response 200:
+{
+  "mintA": "So11111111111111111111111111111111111111112",
+  "mintB": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+  "tokenA": {
+    "mint": "So11111111111111111111111111111111111111112",
+    "symbol": "SOL",
+    "name": "Wrapped SOL",
+    "imageUrl": "https://...",
+    "assessment": { "...": "same shape as GET /v1/score/:mint" }
+  },
+  "tokenB": {
+    "mint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "imageUrl": "https://...",
+    "assessment": { "...": "same shape as GET /v1/score/:mint" }
+  },
+  "comparison": {
+    "scoreDelta": 12,
+    "scoreA": 81,
+    "scoreB": 69,
+    "riskierMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    "saferMint": "So11111111111111111111111111111111111111112",
+    "summary": "Token A appears safer by 12 points (higher score = lower risk)."
+  },
+  "generatedAt": "2026-04-20T00:00:00.000Z"
+}
+
+Response 400:
+{
+  "error": "Invalid mintA query parameter",
+  "hint": "Use ?mintA=<base58 mint>&mintB=<base58 mint>"
+}
 
 --------------------------------------------------
 GET /v1/top-tokens?limit=20

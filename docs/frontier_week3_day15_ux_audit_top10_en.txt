@@ -1,0 +1,130 @@
+TrustLayer - Week 3 Day 15 UX Audit (Top 10)
+Date: April 20, 2026
+Scope: Main judge flow (Top Tokens -> Analyze -> Score Panel -> Watchlist -> Alerts)
+
+==================================================
+Audit Outcome
+==================================================
+
+Main conclusion:
+- Core flow works and is stable.
+- Biggest gap is not missing features, but clarity:
+  users need faster understanding of what score means, why it moved, and what action to take.
+
+Owners:
+- Product/UI decisions: Agar
+- Implementation: Codex
+
+Kickoff progress implemented on Apr 20, 2026:
+- [DONE] P0-01 microcopy in score panel: "Higher score means lower risk."
+- [DONE] P0-02 quick glossary added as collapsible in result panel.
+- [DONE] P0-03 warnings improved with optional provider diagnostics toggle.
+- [IN PROGRESS] P0-04 compare mode:
+  - backend `GET /v1/compare?mintA=&mintB=` endpoint draft
+  - frontend side-by-side compare panel draft
+- [DONE] P1-07 score history numeric anchors added (min/current/max labels).
+- [DONE] P1-06 helper text added in Recent alerts ("generated from watchlist checks").
+- [DONE] P1-08 onboarding empty-state text upgraded to 3-step start flow.
+- [DONE] P1-05 analyze errors now include actionable retry guidance.
+- [DONE] P2-10 header trust links added:
+  - Methodology modal ("How scoring works")
+  - direct API health entry point
+
+==================================================
+Top 10 Prioritized Frictions
+==================================================
+
+P0-01) Score semantics can feel ambiguous on first read
+- Problem: "Risk" wording and high numeric score can feel counterintuitive for first-time users.
+- Impact: High (judge misunderstanding risk in first 10 seconds).
+- Fix: Add explicit microcopy in score area: "Higher score = lower risk".
+- Owner: Codex
+- Target: Day 16
+
+P0-02) Missing quick glossary near scoring terms
+- Problem: Terms like mint authority, freeze authority, liquidity confidence are technical.
+- Impact: High (non-technical judges lose context).
+- Fix: Add collapsible "Glossary" with 1-line definitions for core terms.
+- Owner: Codex
+- Target: Day 16
+
+P0-03) Warning section still too dense during demo
+- Problem: Long provider diagnostics can visually dominate panel.
+- Impact: High (demo readability drops).
+- Fix: Keep human-readable summary always visible; move raw provider detail under expandable section.
+- Owner: Codex
+- Target: Day 16
+
+P0-04) Compare use case not directly supported
+- Problem: User cannot quickly compare two candidate tokens side-by-side.
+- Impact: High (common trader workflow, strong judge demo moment).
+- Fix: Implement minimal compare mode (A vs B) with same 5 signals + final score delta.
+- Owner: Codex
+- Target: Day 17 (optional but high leverage)
+
+P1-05) Error states are technically correct but not action-oriented
+- Problem: Messages explain failure but not next action clearly enough.
+- Impact: Medium-high.
+- Fix: Add "Try this next" hint lines (retry, check RPC provider, use another token).
+- Owner: Codex
+- Target: Day 16
+
+P1-06) Watchlist and Recent Alerts relation is not explicit
+- Problem: Two collapsibles are separated (good), but relationship is not explained.
+- Impact: Medium.
+- Fix: Add one-line helper text under alerts title: "Alerts are generated from watchlist checks."
+- Owner: Codex
+- Target: Day 16
+
+P1-07) Score History chart lacks quick numeric anchors
+- Problem: Trend line is useful, but no min/max markers or y-reference labels.
+- Impact: Medium.
+- Fix: Add compact min/max/current labels next to chart.
+- Owner: Codex
+- Target: Day 18
+
+P1-08) First-time empty state onboarding is minimal
+- Problem: New user does not get a guided "start here" sequence.
+- Impact: Medium.
+- Fix: Add simple onboarding hint: "1) pick top token or search 2) analyze 3) add favorites".
+- Owner: Codex
+- Target: Day 16
+
+P2-09) Mobile table usability depends heavily on horizontal scroll
+- Problem: Wide table is expected but still heavy on smaller screens.
+- Impact: Medium-low.
+- Fix: Add mobile condensed row mode for key fields (name, 24h, risk, analyze).
+- Owner: Codex
+- Target: Day 18/20
+
+P2-10) Header does not surface confidence-building links
+- Problem: No direct links to methodology / API health / docs.
+- Impact: Medium-low.
+- Fix: Add lightweight header actions: "Methodology" and "API".
+- Owner: Codex
+- Target: Day 19
+
+==================================================
+Week 3 Acceptance Criteria (from Day 15 audit)
+==================================================
+
+A1) First-time user understands score direction in under 10 seconds.
+A2) First-time user understands at least 3/5 signal terms without external explanation.
+A3) Warnings remain readable during demo without overwhelming main score context.
+A4) Error messages include one clear next action.
+A5) Watchlist and alerts workflow is self-explanatory.
+A6) History chart communicates trend + numeric context.
+A7) Core flow remains stable under refresh and manual checks.
+A8) Demo flow remains reproducible in one take.
+A9) No visual overflow/blocking issues in right panel.
+A10) At least 8/10 UX frictions are resolved or intentionally deferred with reason.
+
+==================================================
+Execution Order Proposal
+==================================================
+
+1) Day 16: P0-01, P0-02, P0-03, P1-05, P1-06, P1-08
+2) Day 17: P0-04 (compare) or explicit defer note
+3) Day 18: P1-07 + P2-09 performance/mobile pass
+4) Day 19: P2-10 + methodology/transparency assets
+5) Day 20: QA and bug burndown against A1-A10

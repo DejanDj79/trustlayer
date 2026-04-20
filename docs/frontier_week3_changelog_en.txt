@@ -1,0 +1,39 @@
+TrustLayer - Week 3 Changelog
+Date range: 20 Apr 2026 - 26 Apr 2026
+
+1) UX clarity and trust signals
+- Added Methodology modal in header flow ("How Scoring Works").
+- Added direct API health entry point from header.
+- Added Quick Glossary in score result panel.
+- Improved warning readability with optional provider diagnostics toggle.
+
+2) Compare mode improvements
+- Added compare API endpoint:
+  - `GET /v1/compare?mintA=&mintB=`
+- Integrated compare panel into right-side workflow.
+- Added token profile/avatar consistency improvements for compare cards.
+
+3) Performance and stability
+- Added token profile fetch cache + in-flight dedupe in web app.
+- Improved top token risk refresh:
+  - reuse recent scores (stale policy)
+  - avoid full pending reset on periodic refresh.
+
+4) Score transparency layer
+- Added explicit weighted score breakdown in API responses.
+- Added new endpoint:
+  - `GET /v1/score-breakdown/:mint`
+- Added "Score Math" panel in UI:
+  - weighted component contributions
+  - score adjustments (penalty/cap) with before/after values
+  - base score vs final score visibility.
+
+5) QA and bug burndown support
+- Added automated Week 3 smoke script:
+  - `npm run qa:week3`
+  - script: `scripts/week3_qa_smoke.mjs`
+- Added Week 3 QA checklist:
+  - `docs/frontier_week3_qa_checklist_en.txt`
+
+Impact summary:
+- Product is now easier to judge, easier to explain, and easier to verify before weekly checkpoint/demo.

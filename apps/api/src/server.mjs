@@ -132,6 +132,14 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
       "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN/logo.png"
   }
 ];
+const SCORE_FORMULA_VERSION = "2026.04-v1";
+const SCORE_WEIGHTS = Object.freeze({
+  holderSafety: 35,
+  liquidityScore: 20,
+  authoritySafety: 25,
+  metadataScore: 10,
+  activityScore: 10
+});
 
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -1060,26 +1068,212 @@ function computeAuthorityRisk(mintAuthority, freezeAuthority) {
   return clamp(risk);
 }
 
-function computeScoreBreakdown(signals) {
-  const holderSafety = (1 - signals.holderConcentration) * 35;
-  const liquidityScore = signals.liquidityConfidence * 20;
-  const authoritySafety = (1 - signals.authorityRisk) * 25;
-  const metadataScore = signals.metadataConfidence * 10;
-  const activityScore = signals.activityConfidence * 10;
+function toFixedNumber(value, digits = 2) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Number(numeric.toFixed(digits));
+}
 
-  const score = Math.round(
-    holderSafety + liquidityScore + authoritySafety + metadataScore + activityScore
-  );
+function buildScoreAdjustment({
+  type,
+  key,
+  label,
+  beforeScore,
+  afterScore,
+  note = null,
+  cap = null,
+  tier = null
+}) {
+  return {
+    type,
+    key,
+    label,
+    delta: toFixedNumber(afterScore - beforeScore, 2),
+    beforeScore: Math.round(beforeScore),
+    afterScore: Math.round(afterScore),
+    note,
+    cap: Number.isFinite(Number(cap)) ? Number(cap) : null,
+    tier: tier || null
+  };
+}
+
+function computeScoreBreakdown(signals) {
+  const holderSafety = (1 - signals.holderConcentration) * SCORE_WEIGHTS.holderSafety;
+  const liquidityScore = signals.liquidityConfidence * SCORE_WEIGHTS.liquidityScore;
+  const authoritySafety = (1 - signals.authorityRisk) * SCORE_WEIGHTS.authoritySafety;
+  const metadataScore = signals.metadataConfidence * SCORE_WEIGHTS.metadataScore;
+  const activityScore = signals.activityConfidence * SCORE_WEIGHTS.activityScore;
+
+  const rawScore = holderSafety + liquidityScore + authoritySafety + metadataScore + activityScore;
+
+  const score = Math.round(rawScore);
+  const components = [
+    {
+      key: "holderSafety",
+      label: "Holder concentration safety",
+      weightPct: SCORE_WEIGHTS.holderSafety,
+      signalLabel: "Top 10 holders concentration",
+      signalValue: toFixedNumber(signals.holderConcentration * 100, 2),
+      signalUnit: "pct",
+      normalizedSignal: toFixedNumber(1 - signals.holderConcentration, 4),
+      contribution: toFixedNumber(holderSafety, 2)
+    },
+    {
+      key: "liquidityScore",
+      label: "Liquidity confidence",
+      weightPct: SCORE_WEIGHTS.liquidityScore,
+      signalLabel: "Liquidity confidence",
+      signalValue: toFixedNumber(signals.liquidityConfidence * 100, 2),
+      signalUnit: "pct",
+      normalizedSignal: toFixedNumber(signals.liquidityConfidence, 4),
+      contribution: toFixedNumber(liquidityScore, 2)
+    },
+    {
+      key: "authoritySafety",
+      label: "Authority safety",
+      weightPct: SCORE_WEIGHTS.authoritySafety,
+      signalLabel: "Authority safety",
+      signalValue: toFixedNumber((1 - signals.authorityRisk) * 100, 2),
+      signalUnit: "pct",
+      normalizedSignal: toFixedNumber(1 - signals.authorityRisk, 4),
+      contribution: toFixedNumber(authoritySafety, 2)
+    },
+    {
+      key: "metadataScore",
+      label: "Metadata confidence",
+      weightPct: SCORE_WEIGHTS.metadataScore,
+      signalLabel: "Metadata confidence",
+      signalValue: toFixedNumber(signals.metadataConfidence * 100, 2),
+      signalUnit: "pct",
+      normalizedSignal: toFixedNumber(signals.metadataConfidence, 4),
+      contribution: toFixedNumber(metadataScore, 2)
+    },
+    {
+      key: "activityScore",
+      label: "Activity confidence",
+      weightPct: SCORE_WEIGHTS.activityScore,
+      signalLabel: "Activity confidence",
+      signalValue: toFixedNumber(signals.activityConfidence * 100, 2),
+      signalUnit: "pct",
+      normalizedSignal: toFixedNumber(signals.activityConfidence, 4),
+      contribution: toFixedNumber(activityScore, 2)
+    }
+  ];
 
   return {
     score,
+    rawScore: toFixedNumber(rawScore, 2),
     parts: {
       holderSafety,
       liquidityScore,
       authoritySafety,
       metadataScore,
       activityScore
+    },
+    components
+  };
+}
+
+function adjustScoreByHolderSource(score, holderSource, holderSampledCoverage, warnings) {
+  let adjustedScore = Math.round(score);
+  let scoreConfidence = "medium";
+  const adjustments = [];
+
+  if (holderSource === "rpc" || holderSource === "rpc-token-accounts-exact") {
+    scoreConfidence = "high";
+    return {
+      score: adjustedScore,
+      scoreConfidence,
+      adjustments
+    };
+  }
+
+  if (holderSource === "rpc-token-accounts-estimate") {
+    scoreConfidence = "medium";
+    if (!Number.isFinite(holderSampledCoverage)) {
+      scoreConfidence = "low";
+      warnings.push(
+        "Score confidence reduced to low because token accounts sample coverage is unknown."
+      );
+    } else if (holderSampledCoverage < 0.15) {
+      scoreConfidence = "low";
+      warnings.push(
+        "Score confidence reduced to low because token accounts sample coverage is below 15%."
+      );
     }
+    return {
+      score: adjustedScore,
+      scoreConfidence,
+      adjustments
+    };
+  }
+
+  const beforePenalty = adjustedScore;
+  adjustedScore = Math.max(0, adjustedScore - HOLDER_HEURISTIC_PENALTY);
+  warnings.push(`Score adjusted -${HOLDER_HEURISTIC_PENALTY} because holder concentration is heuristic.`);
+  adjustments.push(
+    buildScoreAdjustment({
+      type: "penalty",
+      key: "heuristic-holder-penalty",
+      label: `Heuristic holder penalty (-${HOLDER_HEURISTIC_PENALTY})`,
+      beforeScore: beforePenalty,
+      afterScore: adjustedScore
+    })
+  );
+
+  if (adjustedScore > HOLDER_HEURISTIC_MAX_SCORE) {
+    const beforeCap = adjustedScore;
+    adjustedScore = HOLDER_HEURISTIC_MAX_SCORE;
+    warnings.push(
+      `Score capped at ${HOLDER_HEURISTIC_MAX_SCORE} while holder concentration is heuristic.`
+    );
+    adjustments.push(
+      buildScoreAdjustment({
+        type: "cap",
+        key: "heuristic-holder-cap",
+        label: `Heuristic score cap (${HOLDER_HEURISTIC_MAX_SCORE})`,
+        beforeScore: beforeCap,
+        afterScore: adjustedScore,
+        cap: HOLDER_HEURISTIC_MAX_SCORE
+      })
+    );
+  }
+
+  scoreConfidence = "low";
+  return {
+    score: adjustedScore,
+    scoreConfidence,
+    adjustments
+  };
+}
+
+function buildScoreBreakdownPayload(
+  computation,
+  adjustments,
+  finalScore,
+  impliedStatus,
+  finalStatus,
+  scoreConfidence,
+  statusDowngradeReason
+) {
+  return {
+    formulaVersion: SCORE_FORMULA_VERSION,
+    maxScore: 100,
+    weights: {
+      ...SCORE_WEIGHTS
+    },
+    baseScore: Math.round(computation.score),
+    baseScoreRaw: toFixedNumber(computation.rawScore, 2),
+    components: Array.isArray(computation.components) ? computation.components : [],
+    adjustments: Array.isArray(adjustments) ? adjustments : [],
+    finalScore: Math.round(finalScore),
+    impliedStatus,
+    finalStatus,
+    scoreConfidence,
+    statusDowngraded: impliedStatus !== finalStatus,
+    statusDowngradeReason: statusDowngradeReason || null
   };
 }
 
@@ -1171,24 +1365,68 @@ function buildFallbackRiskAssessment(mint, warning) {
   const authorityRisk = clamp(((hash >>> 7) % 100) / 100);
   const metadataConfidence = clamp(((hash >>> 11) % 100) / 100);
   const activityLevel = clamp(((hash >>> 15) % 100) / 100);
+  const warnings = [warning];
+  const signals = {
+    holderConcentration,
+    liquidityConfidence: liquidityLevel,
+    authorityRisk,
+    metadataConfidence,
+    activityConfidence: activityLevel
+  };
+  const baseComputation = computeScoreBreakdown(signals);
+  const holderAdjusted = adjustScoreByHolderSource(
+    baseComputation.score,
+    "heuristic",
+    null,
+    warnings
+  );
+  let score = holderAdjusted.score;
+  const scoreConfidence = holderAdjusted.scoreConfidence;
+  const scoreAdjustments = [...holderAdjusted.adjustments];
+  let scoreGuardrailApplied = false;
+  let scoreGuardrailTier = null;
+  let scoreGuardrailCap = null;
+  const guardrail = applyHolderConcentrationGuardrails(score, signals.holderConcentration);
+  if (guardrail.applied) {
+    const beforeGuardrail = score;
+    score = guardrail.score;
+    scoreGuardrailApplied = true;
+    scoreGuardrailTier = guardrail.tier;
+    scoreGuardrailCap = guardrail.cap;
+    warnings.push(guardrail.warning);
+    scoreAdjustments.push(
+      buildScoreAdjustment({
+        type: "cap",
+        key: `holder-concentration-${guardrail.tier}-guardrail`,
+        label: `Holder concentration ${guardrail.tier} guardrail cap (${guardrail.cap})`,
+        beforeScore: beforeGuardrail,
+        afterScore: score,
+        note: guardrail.warning,
+        cap: guardrail.cap,
+        tier: guardrail.tier
+      })
+    );
+  }
 
-  const score =
-    Math.round(
-      (1 - holderConcentration) * 30 +
-        liquidityLevel * 20 +
-        (1 - authorityRisk) * 20 +
-        metadataConfidence * 15 +
-        activityLevel * 15
-    ) || 0;
+  const impliedStatus = scoreToStatus(score);
+  const status = statusFromScoreAndConfidence(score, scoreConfidence);
+  const statusDowngradeReason =
+    status !== impliedStatus ? "Status downgraded to yellow because confidence is not high." : null;
+  if (statusDowngradeReason) {
+    warnings.push(statusDowngradeReason);
+  }
+  const scoreBreakdown = buildScoreBreakdownPayload(
+    baseComputation,
+    scoreAdjustments,
+    score,
+    impliedStatus,
+    status,
+    scoreConfidence,
+    statusDowngradeReason
+  );
 
   const reasons = buildReasons(
-    {
-      holderConcentration,
-      liquidityConfidence: liquidityLevel,
-      authorityRisk,
-      metadataConfidence,
-      activityConfidence: activityLevel
-    },
+    signals,
     {
       authorityKnown: false,
       mintAuthority: null,
@@ -1202,10 +1440,11 @@ function buildFallbackRiskAssessment(mint, warning) {
   return {
     mint,
     score,
-    status: statusFromScoreAndConfidence(score, "low"),
-    scoreConfidence: "low",
+    status,
+    scoreConfidence,
     reasons,
     dataSource: "fallback",
+    scoreBreakdown,
     signalDetails: {
       mintAuthorityEnabled: null,
       freezeAuthorityEnabled: null,
@@ -1219,10 +1458,10 @@ function buildFallbackRiskAssessment(mint, warning) {
       liquidityUsd: null,
       volume24hUsd: null,
       tx24h: null,
-      scoreConfidence: "low",
-      scoreGuardrailApplied: false,
-      scoreGuardrailTier: null,
-      scoreGuardrailCap: null
+      scoreConfidence,
+      scoreGuardrailApplied,
+      scoreGuardrailTier,
+      scoreGuardrailCap
     },
     rpcHealth: {
       tokenSupply: {
@@ -1242,7 +1481,7 @@ function buildFallbackRiskAssessment(mint, warning) {
         pagesFetched: 0
       }
     },
-    warnings: [warning],
+    warnings,
     generatedAt: new Date().toISOString()
   };
 }
@@ -1923,54 +2162,60 @@ async function buildRiskAssessment(mint) {
       metadataConfidence,
       activityConfidence: marketSignals.activityConfidence
     };
-    let { score } = computeScoreBreakdown(signals);
-    let scoreConfidence = "medium";
+    const baseComputation = computeScoreBreakdown(signals);
+    let score = baseComputation.score;
+    const holderAdjusted = adjustScoreByHolderSource(
+      score,
+      rpcSignals.holderSource,
+      rpcSignals.holderSampledCoverage,
+      warnings
+    );
+    score = holderAdjusted.score;
+    const scoreConfidence = holderAdjusted.scoreConfidence;
+    const scoreAdjustments = [...holderAdjusted.adjustments];
     let scoreGuardrailApplied = false;
     let scoreGuardrailTier = null;
     let scoreGuardrailCap = null;
-    if (rpcSignals.holderSource === "rpc" || rpcSignals.holderSource === "rpc-token-accounts-exact") {
-      scoreConfidence = "high";
-    } else if (rpcSignals.holderSource === "rpc-token-accounts-estimate") {
-      scoreConfidence = "medium";
-      if (!Number.isFinite(rpcSignals.holderSampledCoverage)) {
-        scoreConfidence = "low";
-        warnings.push(
-          "Score confidence reduced to low because token accounts sample coverage is unknown."
-        );
-      } else if (rpcSignals.holderSampledCoverage < 0.15) {
-        scoreConfidence = "low";
-        warnings.push(
-          "Score confidence reduced to low because token accounts sample coverage is below 15%."
-        );
-      }
-    } else {
-      score = Math.max(0, score - HOLDER_HEURISTIC_PENALTY);
-      warnings.push(
-        `Score adjusted -${HOLDER_HEURISTIC_PENALTY} because holder concentration is heuristic.`
-      );
-      if (score > HOLDER_HEURISTIC_MAX_SCORE) {
-        score = HOLDER_HEURISTIC_MAX_SCORE;
-        warnings.push(
-          `Score capped at ${HOLDER_HEURISTIC_MAX_SCORE} while holder concentration is heuristic.`
-        );
-      }
-      scoreConfidence = "low";
-    }
 
     const guardrail = applyHolderConcentrationGuardrails(score, signals.holderConcentration);
     if (guardrail.applied) {
+      const beforeGuardrail = score;
       score = guardrail.score;
       scoreGuardrailApplied = true;
       scoreGuardrailTier = guardrail.tier;
       scoreGuardrailCap = guardrail.cap;
       warnings.push(guardrail.warning);
+      scoreAdjustments.push(
+        buildScoreAdjustment({
+          type: "cap",
+          key: `holder-concentration-${guardrail.tier}-guardrail`,
+          label: `Holder concentration ${guardrail.tier} guardrail cap (${guardrail.cap})`,
+          beforeScore: beforeGuardrail,
+          afterScore: score,
+          note: guardrail.warning,
+          cap: guardrail.cap,
+          tier: guardrail.tier
+        })
+      );
     }
 
     const reasons = buildReasons(signals, rpcSignals, marketSignals);
+    const impliedStatus = scoreToStatus(score);
     const status = statusFromScoreAndConfidence(score, scoreConfidence);
-    if (status !== scoreToStatus(score)) {
-      warnings.push("Status downgraded to yellow because confidence is not high.");
+    const statusDowngradeReason =
+      status !== impliedStatus ? "Status downgraded to yellow because confidence is not high." : null;
+    if (statusDowngradeReason) {
+      warnings.push(statusDowngradeReason);
     }
+    const scoreBreakdown = buildScoreBreakdownPayload(
+      baseComputation,
+      scoreAdjustments,
+      score,
+      impliedStatus,
+      status,
+      scoreConfidence,
+      statusDowngradeReason
+    );
 
     return {
       mint,
@@ -1979,6 +2224,7 @@ async function buildRiskAssessment(mint) {
       scoreConfidence,
       reasons,
       dataSource: marketSignals.isRealData ? "solana-rpc+dexscreener" : "solana-rpc+heuristics",
+      scoreBreakdown,
       signalDetails: {
         mintAuthorityEnabled: Boolean(rpcSignals.mintAuthority),
         freezeAuthorityEnabled: Boolean(rpcSignals.freezeAuthority),
@@ -2050,6 +2296,66 @@ async function buildRiskAssessmentCached(mint) {
   });
   recordScoreHistory(assessmentWithMeta, "fresh");
   return assessmentWithMeta;
+}
+
+async function buildCompareAssessment(mintA, mintB) {
+  const normalizedMintA = String(mintA || "").trim();
+  const normalizedMintB = String(mintB || "").trim();
+  if (!validateMint(normalizedMintA) || !validateMint(normalizedMintB)) {
+    throw new Error("Invalid mint input for compare endpoint.");
+  }
+
+  const [assessmentA, assessmentB, profileA, profileB] = await Promise.all([
+    buildRiskAssessmentCached(normalizedMintA),
+    buildRiskAssessmentCached(normalizedMintB),
+    fetchTokenProfileByMint(normalizedMintA),
+    fetchTokenProfileByMint(normalizedMintB)
+  ]);
+
+  const scoreA = Number(assessmentA?.score || 0);
+  const scoreB = Number(assessmentB?.score || 0);
+  const scoreDelta = Number((scoreA - scoreB).toFixed(2));
+
+  let riskierMint = null;
+  let saferMint = null;
+  let summary = "Both tokens currently have the same risk score.";
+  if (scoreDelta > 0) {
+    saferMint = normalizedMintA;
+    riskierMint = normalizedMintB;
+    summary = `Token A appears safer by ${Math.round(Math.abs(scoreDelta))} points (higher score = lower risk).`;
+  } else if (scoreDelta < 0) {
+    saferMint = normalizedMintB;
+    riskierMint = normalizedMintA;
+    summary = `Token B appears safer by ${Math.round(Math.abs(scoreDelta))} points (higher score = lower risk).`;
+  }
+
+  return {
+    mintA: normalizedMintA,
+    mintB: normalizedMintB,
+    tokenA: {
+      mint: normalizedMintA,
+      symbol: profileA?.symbol || null,
+      name: profileA?.name || null,
+      imageUrl: profileA?.imageUrl || null,
+      assessment: assessmentA
+    },
+    tokenB: {
+      mint: normalizedMintB,
+      symbol: profileB?.symbol || null,
+      name: profileB?.name || null,
+      imageUrl: profileB?.imageUrl || null,
+      assessment: assessmentB
+    },
+    comparison: {
+      scoreDelta,
+      scoreA,
+      scoreB,
+      riskierMint,
+      saferMint,
+      summary
+    },
+    generatedAt: new Date().toISOString()
+  };
 }
 
 const server = http.createServer((req, res) => {
@@ -2137,6 +2443,72 @@ const server = http.createServer((req, res) => {
       .catch((error) => {
         sendJson(res, 500, {
           error: "Failed to search tokens",
+          details: error.message
+        });
+      });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/v1/compare") {
+    const mintA = String(parsedUrl.searchParams.get("mintA") || "").trim();
+    const mintB = String(parsedUrl.searchParams.get("mintB") || "").trim();
+    if (!mintA || !validateMint(mintA)) {
+      sendJson(res, 400, {
+        error: "Invalid mintA query parameter",
+        hint: "Use ?mintA=<base58 mint>&mintB=<base58 mint>"
+      });
+      return;
+    }
+    if (!mintB || !validateMint(mintB)) {
+      sendJson(res, 400, {
+        error: "Invalid mintB query parameter",
+        hint: "Use ?mintA=<base58 mint>&mintB=<base58 mint>"
+      });
+      return;
+    }
+    if (mintA === mintB) {
+      sendJson(res, 400, {
+        error: "mintA and mintB must be different"
+      });
+      return;
+    }
+    buildCompareAssessment(mintA, mintB)
+      .then((payload) => {
+        sendJson(res, 200, payload);
+      })
+      .catch((error) => {
+        sendJson(res, 500, {
+          error: "Failed to compare tokens",
+          details: error.message
+        });
+      });
+    return;
+  }
+
+  if (req.method === "GET" && pathname.startsWith("/v1/score-breakdown/")) {
+    const mint = decodeURIComponent(pathname.replace("/v1/score-breakdown/", "").trim());
+    if (!mint || !validateMint(mint)) {
+      sendJson(res, 400, {
+        error: "Invalid Solana mint address",
+        hint: "Use a base58 address with 32-44 chars"
+      });
+      return;
+    }
+    buildRiskAssessmentCached(mint)
+      .then((assessment) => {
+        sendJson(res, 200, {
+          mint: assessment.mint,
+          score: assessment.score,
+          status: assessment.status,
+          scoreConfidence: assessment.scoreConfidence,
+          scoreBreakdown: assessment.scoreBreakdown || null,
+          cache: assessment.cache || null,
+          generatedAt: new Date().toISOString()
+        });
+      })
+      .catch((error) => {
+        sendJson(res, 500, {
+          error: "Failed to build score breakdown",
           details: error.message
         });
       });

@@ -8,6 +8,7 @@
     "dev:api": "npm --workspace apps/api run dev",
     "dev:web": "npm --workspace apps/web run dev",
     "start:api": "npm --workspace apps/api run start",
-    "start:web": "npm --workspace apps/web run start"
+    "start:web": "npm --workspace apps/web run start",
+    "qa:week3": "node scripts/week3_qa_smoke.mjs"
   }
 }
