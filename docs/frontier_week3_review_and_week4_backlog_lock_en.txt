@@ -1,0 +1,71 @@
+TrustLayer - Week 3 Review and Week 4 Backlog Lock
+Date: 20 Apr 2026
+Status: Week 3 Complete (closed early)
+
+==================================================
+1) Week 3 Completion Summary
+==================================================
+
+Week 3 objectives were product polish, transparency, and judge-ready clarity.
+All core Week 3 goals were completed:
+
+- Score transparency implemented:
+  - weighted contribution model exposed in API and UI
+  - `GET /v1/score-breakdown/:mint`
+  - "Score Math" panel in right-side analysis flow
+
+- UX polish completed:
+  - methodology modal + API health access from header
+  - warning readability and diagnostics toggle
+  - glossary and clearer score interpretation copy
+
+- Compare mode delivered:
+  - API compare endpoint
+  - integrated compare panel workflow
+
+- QA gate delivered:
+  - automated smoke command: `npm run qa:week3`
+  - checklist: `docs/frontier_week3_qa_checklist_en.txt`
+  - run report: `docs/frontier_week3_qa_run_2026-04-20.txt` (PASS)
+
+==================================================
+2) Evidence Pack (Week 3)
+==================================================
+
+- Changelog: `docs/frontier_week3_changelog_en.txt`
+- Demo flow: `docs/frontier_week3_demo_flow_90s_en.txt`
+- Video script: `docs/frontier_week3_video_script_and_shotlist_en.txt`
+- QA checklist: `docs/frontier_week3_qa_checklist_en.txt`
+- QA run: `docs/frontier_week3_qa_run_2026-04-20.txt`
+- Week 3 plan: `plans/frontier_2026_trustlayer_week3_day_by_day.txt`
+
+==================================================
+3) Week 4 Backlog Lock (Input from Week 3 Review)
+==================================================
+
+Locked Week 4 priorities:
+
+1. Provider reliability hardening
+- Reduce heuristic fallback frequency and improve confidence quality.
+
+2. Data quality and scoring calibration pass
+- Validate score distribution behavior on golden-token set and tune safely.
+
+3. Test hardening
+- Expand contract and regression checks across all critical endpoints and flows.
+
+4. Deployment and ops readiness
+- Production/staging runbook, uptime checks, and rollback procedure.
+
+Items intentionally deferred to Week 4:
+- deeper provider tuning and fallback ratio optimization
+- final production operations hardening
+- final submission packaging/freeze prep
+
+==================================================
+4) Closure Decision
+==================================================
+
+Week 3 is formally closed.
+No additional Week 3 feature scope should be added.
+All new work proceeds under Week 4 hardening plan.

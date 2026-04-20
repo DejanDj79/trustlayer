@@ -1,7 +1,7 @@
 TRUSTLAYER - WEEK 3 DAY-BY-DAY PLAN
 Period: 20 Apr 2026 - 26 Apr 2026
 
-STATUS SNAPSHOT (as of 20 Apr 2026)
+STATUS SNAPSHOT (as of 20 Apr 2026, closed early)
 - [DONE] Deo UX polisha vec postoji:
   - confidence/reasons readability
   - warning readability rework
@@ -10,23 +10,28 @@ STATUS SNAPSHOT (as of 20 Apr 2026)
 - [DONE] Top table loading polish (skeleton + stagger reveal) zavrsen unapred.
 - [DONE] Formalni UX audit + prioritetna lista top 10 frikcija:
   - vidi `docs/frontier_week3_day15_ux_audit_top10_en.txt`
-- [IN PROGRESS] "Judge-ready" copy polish i jasniji narativ score metodologije.
-  - quick wins vec ubaceni: score meaning copy, glossary, warning diagnostics toggle, onboarding/help copy, history min/current/max anchors, methodology modal + API header links.
-- [IN PROGRESS] Compare mode (A vs B):
-  - API endpoint draft: `GET /v1/compare?mintA=&mintB=`
-  - frontend compare panel draft (side-by-side signal snapshot).
-- [IN PROGRESS] Performance pass i latency tuning:
-  - token profile fetch cache + in-flight dedupe (`/v1/token/:mint`) to reduce duplicate requests in analyzer/compare flows.
-  - top-tokens risk refresh now reuses recent scores (cache + stale policy) and avoids full pending reset on each refresh.
+- [DONE] "Judge-ready" copy polish i jasniji narativ score metodologije.
+  - score meaning copy, glossary, warning diagnostics toggle, onboarding/help copy, history min/current/max anchors, methodology modal + API header links.
+- [DONE] Compare mode (A vs B):
+  - API endpoint: `GET /v1/compare?mintA=&mintB=`
+  - frontend compare panel integrated into right-side workflow.
+- [DONE] Performance pass i latency tuning (week 3 scope):
+  - token profile fetch cache + in-flight dedupe (`/v1/token/:mint`).
+  - top-tokens risk refresh reuses recent scores (cache + stale policy) and avoids full pending reset.
 - [DONE] Score transparency layer:
   - API endpoint: `GET /v1/score-breakdown/:mint`
   - response now exposes weighted components + score adjustments (penalty/cap + before/after)
   - UI panel "Score Math" renders contribution math directly in right panel.
-- [IN PROGRESS] Day 20 QA + bug burndown:
+- [DONE] Day 20 QA + bug burndown:
   - [DONE] automated smoke script added: `npm run qa:week3` (`scripts/week3_qa_smoke.mjs`)
   - [DONE] new checklist added: `docs/frontier_week3_qa_checklist_en.txt`
   - [DONE] local QA run logged: `docs/frontier_week3_qa_run_2026-04-20.txt` (PASS)
-  - next: triage fallback-heavy distribution and tune provider reliability in Week 4 hardening.
+  - carryover to Week 4: triage fallback-heavy distribution and tune provider reliability.
+- [DONE] Day 21 review package prepared:
+  - weekly changelog: `docs/frontier_week3_changelog_en.txt`
+  - demo flow: `docs/frontier_week3_demo_flow_90s_en.txt`
+  - week 3 video script: `docs/frontier_week3_video_script_and_shotlist_en.txt`
+  - formal closure + week 4 lock: `docs/frontier_week3_review_and_week4_backlog_lock_en.txt`
 
 Goal of week 3:
 - Pretvoriti "radi" u "uverljivo radi" kroz UX, narativ i product polish.
@@ -173,3 +178,6 @@ WEEK 3 SUCCESS CHECKLIST
 5. Product demo izgleda "investor-ready".
 
 If all 5 are true -> Week 3 is successful.
+
+WEEK 3 CLOSURE STATUS:
+- Week 3 marked COMPLETE (closed early on 20 Apr 2026).
