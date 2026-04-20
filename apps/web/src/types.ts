@@ -121,6 +121,7 @@ export interface TopToken {
   priceUsd: number | null;
   marketCapUsd: number | null;
   change24hPct: number | null;
+  sparkline7d?: number[] | null;
   imageUrl?: string | null;
 }
 

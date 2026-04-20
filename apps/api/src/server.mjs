@@ -95,6 +95,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
+    sparkline7d: null,
     imageUrl:
       "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png"
   },
@@ -106,6 +107,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
+    sparkline7d: null,
     imageUrl:
       "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png"
   },
@@ -117,6 +119,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
+    sparkline7d: null,
     imageUrl:
       "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.png"
   },
@@ -128,6 +131,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
+    sparkline7d: null,
     imageUrl:
       "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN/logo.png"
   }
@@ -1860,7 +1864,7 @@ async function fetchTopSolanaTokens(limit) {
     marketsUrl.searchParams.set("order", "market_cap_desc");
     marketsUrl.searchParams.set("per_page", String(fetchSize));
     marketsUrl.searchParams.set("page", "1");
-    marketsUrl.searchParams.set("sparkline", "false");
+    marketsUrl.searchParams.set("sparkline", "true");
 
     const listUrl = `${COINGECKO_API_BASE}/coins/list?include_platform=true`;
 
@@ -1901,6 +1905,11 @@ async function fetchTopSolanaTokens(limit) {
           : null,
         change24hPct: Number.isFinite(Number(market?.price_change_percentage_24h))
           ? Number(market.price_change_percentage_24h)
+          : null,
+        sparkline7d: Array.isArray(market?.sparkline_in_7d?.price)
+          ? market.sparkline_in_7d.price
+              .map((value) => Number(value))
+              .filter((value) => Number.isFinite(value))
           : null,
         imageUrl: market?.image || null
       });

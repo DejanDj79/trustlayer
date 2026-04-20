@@ -3,6 +3,7 @@ import { AnalyzerForm } from "./components/AnalyzerForm";
 import { ComparePanel } from "./components/ComparePanel";
 import { Header } from "./components/Header";
 import { ScoreResult } from "./components/ScoreResult";
+import { TableInsightsPanel } from "./components/TableInsightsPanel";
 import { TopTokensTable } from "./components/TopTokensTable";
 import { WatchlistPanel } from "./components/WatchlistPanel";
 import { API_BASE, requestJsonWithRetry } from "./lib/api";
@@ -1572,6 +1573,19 @@ export default function App() {
                   void analyzeMint(tokenMint);
                 }}
                 onToggleWatchlist={toggleWatchlistFromTopToken}
+              />
+
+              <TableInsightsPanel
+                tokens={topTokens}
+                risks={topTokenRisks}
+                source={topTokensSource}
+                fallbackMode={topTokensWarnings.length > 0}
+                selectedMint={selectedMint}
+                onAnalyzeToken={(tokenMint) => {
+                  setSelectedMint(tokenMint);
+                  setMint(tokenMint);
+                  void analyzeMint(tokenMint);
+                }}
               />
             </div>
 
