@@ -398,7 +398,7 @@ export function ScoreResult({
       </article>
 
       <div className="grid gap-3">
-        <article className="bg-transparent px-4 py-4">
+        <article className="bg-transparent px-4 py-2">
           <button
             type="button"
             onClick={() => setIsGlossaryOpen((current) => !current)}

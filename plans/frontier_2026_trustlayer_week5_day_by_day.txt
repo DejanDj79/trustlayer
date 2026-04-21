@@ -6,6 +6,14 @@ STATUS SNAPSHOT (prepared on 21 Apr 2026)
 - [NEXT] Week 5 development continues on a new branch after checkpoint push.
 - [FOCUS] Add high-impact, judge-visible product depth without breaking stability.
 
+EXECUTION UPDATE (Apr 21, 2026 checkpoint)
+- [DONE] Risk Change Leaderboard shipped and integrated.
+- [DONE] Liquidity vs Holder Concentration view shipped with click-through analyzer flow.
+- [DONE] Narrative tags shipped in table + detail panel.
+- [DONE] Shared `Filter by tag` wired across top table and insights panel.
+- [IN PROGRESS] Week 5 QA hard pass + docs/video packaging.
+- [SCOPED] Dedicated Data Quality panel removed to avoid overlap with existing Coverage/Risk Mix blocks.
+
 Goal of week 5:
 - Add final product depth (risk movement intelligence + data quality transparency),
   then close with submission-ready assets.

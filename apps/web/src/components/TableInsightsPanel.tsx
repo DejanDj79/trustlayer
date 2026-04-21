@@ -154,6 +154,63 @@ function formatSignedPercent(value: number | null | undefined): string {
   return `${numeric >= 0 ? "+" : ""}${numeric.toFixed(2)}%`;
 }
 
+function normalizeConfidence(value: string | null | undefined): "high" | "medium" | "low" | "unknown" {
+  const normalized = String(value || "").trim().toLowerCase();
+  if (normalized === "high" || normalized === "medium" || normalized === "low") {
+    return normalized;
+  }
+  return "unknown";
+}
+
+function confidenceClass(confidence: "high" | "medium" | "low" | "unknown"): string {
+  if (confidence === "high") {
+    return "text-green-300";
+  }
+  if (confidence === "medium") {
+    return "text-amber-300";
+  }
+  if (confidence === "low") {
+    return "text-red-400";
+  }
+  return "text-zinc-500";
+}
+
+function formatScoreValue(value: number | null | undefined): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "n/a";
+  }
+  return `${numeric.toFixed(1)}%`;
+}
+
+function formatCompactUsd(value: number | null | undefined): string {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return "n/a";
+  }
+  if (numeric >= 1_000_000_000) {
+    return `$${(numeric / 1_000_000_000).toFixed(1)}B`;
+  }
+  if (numeric >= 1_000_000) {
+    return `$${(numeric / 1_000_000).toFixed(1)}M`;
+  }
+  if (numeric >= 1_000) {
+    return `$${(numeric / 1_000).toFixed(1)}K`;
+  }
+  return `$${numeric.toFixed(0)}`;
+}
+
+function statusColorClass(status: string | null | undefined): string {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (normalized === "green") {
+    return "border-green-400 bg-green-500/70";
+  }
+  if (normalized === "red") {
+    return "border-red-400 bg-red-500/70";
+  }
+  return "border-amber-300 bg-amber-400/70";
+}
+
 function MiniPriceSparkline({
   prices,
   fallbackChangePct
@@ -342,6 +399,105 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
     [tokens]
   );
 
+  const riskChangeLeaderboard = useMemo(() => {
+    const rows = tokens
+      .map((token) => {
+        const trend = trendByMint[token.mint];
+        const points = Array.isArray(trend?.points) ? trend.points : [];
+        const risk = risks[token.mint];
+        const nowScoreFromTrend =
+          points.length > 0 ? Number(points[points.length - 1]) : Number.NaN;
+        const nowScoreFromRisk = Number(risk?.score);
+        const nowScore = Number.isFinite(nowScoreFromTrend)
+          ? nowScoreFromTrend
+          : Number.isFinite(nowScoreFromRisk)
+            ? nowScoreFromRisk
+            : null;
+        const previousScore = points.length >= 2 ? Number(points[0]) : null;
+        const deltaScore =
+          Number.isFinite(Number(nowScore)) && Number.isFinite(Number(previousScore))
+            ? Number(nowScore) - Number(previousScore)
+            : null;
+        const confidence = normalizeConfidence(risk?.scoreConfidence);
+
+        return {
+          mint: token.mint,
+          name: token.name || token.symbol || token.mint,
+          nowScore,
+          previousScore,
+          deltaScore,
+          confidence
+        };
+      })
+      .filter((row) => Number.isFinite(Number(row.nowScore)));
+
+    rows.sort((a, b) => {
+      const absA = Math.abs(Number(a.deltaScore || 0));
+      const absB = Math.abs(Number(b.deltaScore || 0));
+      if (absB !== absA) {
+        return absB - absA;
+      }
+      return String(a.name).localeCompare(String(b.name));
+    });
+
+    return rows.slice(0, 10);
+  }, [tokens, trendByMint, risks]);
+
+  const liquidityVsConcentration = useMemo(() => {
+    const base = tokens
+      .map((token) => {
+        const risk = risks[token.mint];
+        const details = risk?.signalDetails || {};
+        const liquidityUsd = Number(details.liquidityUsd);
+        const holderConcentrationPct = Number(details.holderConcentrationPct);
+        if (
+          risk?.state !== "ready" ||
+          !Number.isFinite(liquidityUsd) ||
+          liquidityUsd <= 0 ||
+          !Number.isFinite(holderConcentrationPct)
+        ) {
+          return null;
+        }
+        return {
+          mint: token.mint,
+          symbol: token.symbol || "N/A",
+          name: token.name || token.symbol || token.mint,
+          liquidityUsd,
+          holderConcentrationPct: Math.max(0, Math.min(100, holderConcentrationPct)),
+          status: risk.status || "yellow"
+        };
+      })
+      .filter((row): row is {
+        mint: string;
+        symbol: string;
+        name: string;
+        liquidityUsd: number;
+        holderConcentrationPct: number;
+        status: string;
+      } => row !== null);
+
+    if (base.length === 0) {
+      return [];
+    }
+
+    const logValues = base.map((row) => Math.log10(Math.max(1, row.liquidityUsd)));
+    const logMin = Math.min(...logValues);
+    const logMax = Math.max(...logValues);
+    const logSpan = Math.max(1e-9, logMax - logMin);
+
+    return base
+      .map((row) => {
+        const xPct = ((Math.log10(Math.max(1, row.liquidityUsd)) - logMin) / logSpan) * 100;
+        const yPct = 100 - row.holderConcentrationPct;
+        return {
+          ...row,
+          xPct: Math.max(2, Math.min(98, xPct)),
+          yPct: Math.max(2, Math.min(98, yPct))
+        };
+      })
+      .sort((a, b) => b.liquidityUsd - a.liquidityUsd);
+  }, [tokens, risks]);
+
   if (showInitialSkeleton) {
     return (
       <section className="-mx-4 border-t border-tl-border bg-black py-4">
@@ -388,6 +544,43 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
                 </article>
               ))}
             </div>
+          </article>
+
+          <article className="mt-3 border border-tl-border bg-black px-3 py-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="block h-4 w-56 bg-[#1f1f1f]" />
+              <span className="block h-4 w-32 bg-[#1f1f1f]" />
+            </div>
+            <div className="mb-1 grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-3 px-2 py-1">
+              <span className="block h-3 w-20 bg-[#1f1f1f]" />
+              <span className="block h-3 w-16 bg-[#1f1f1f]" />
+              <span className="block h-3 w-16 bg-[#1f1f1f]" />
+              <span className="block h-3 w-16 bg-[#1f1f1f]" />
+              <span className="block h-3 w-20 bg-[#1f1f1f]" />
+            </div>
+            <div className="grid gap-1">
+              {Array.from({ length: 8 }).map((_, rowIndex) => (
+                <div
+                  key={`risk-leader-skeleton-${rowIndex}`}
+                  className="grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-3 px-2 py-1"
+                >
+                  <span className="block h-4 w-40 bg-[#1f1f1f]" />
+                  <span className="block h-4 w-14 bg-[#1f1f1f]" />
+                  <span className="block h-4 w-14 bg-[#1f1f1f]" />
+                  <span className="block h-4 w-14 bg-[#1f1f1f]" />
+                  <span className="block h-4 w-18 bg-[#1f1f1f]" />
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="mt-3 border border-tl-border bg-black px-3 py-3">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="block h-4 w-64 bg-[#1f1f1f]" />
+              <span className="block h-4 w-36 bg-[#1f1f1f]" />
+            </div>
+            <span className="mb-2 block h-4 w-80 bg-[#1f1f1f]" />
+            <div className="h-64 border border-tl-border bg-[#0b0b0b]" />
           </article>
         </div>
       </section>
@@ -597,6 +790,125 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
               )}
             </article>
           </div>
+        </article>
+
+        <article className="mt-3 bg-black px-3 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm uppercase tracking-[0.08em] text-zinc-300">
+              Risk Change Leaderboard ({moverTimeframe})
+            </p>
+            <span className="text-[15px] text-zinc-500">Top absolute score movers</span>
+          </div>
+          <div className="mb-1 grid grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-3 border-b border-tl-border px-2 py-1 text-xs uppercase tracking-[0.08em] text-zinc-500">
+            <span>Token</span>
+            <span className="w-20 text-right">Now</span>
+            <span className="w-20 text-right">Start</span>
+            <span className="w-20 text-right">Delta</span>
+            <span className="w-24 text-right">Confidence</span>
+          </div>
+          {riskChangeLeaderboard.length === 0 ? (
+            <p className="text-sm text-zinc-500">Not enough scored tokens to build leaderboard.</p>
+          ) : (
+            <ul className="grid gap-1">
+              {riskChangeLeaderboard.map((row) => {
+                const delta = Number(row.deltaScore);
+                const deltaClass =
+                  Number.isFinite(delta) && delta > 0
+                    ? "text-green-300"
+                    : Number.isFinite(delta) && delta < 0
+                      ? "text-red-400"
+                      : "text-zinc-500";
+                return (
+                  <li key={`risk-leader-${row.mint}`}>
+                    <button
+                      type="button"
+                      onClick={() => onAnalyzeToken(row.mint)}
+                      className={`grid w-full grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] items-center gap-3 px-2 py-1 text-left transition-colors duration-150 ${
+                        selectedMint === row.mint ? "bg-[#191a1a]" : "hover:bg-[#101010]"
+                      }`}
+                    >
+                      <span className="truncate text-sm text-zinc-200">{row.name}</span>
+                      <span className="w-20 text-right text-xs text-zinc-400">
+                        {formatScoreValue(row.nowScore)}
+                      </span>
+                      <span className="w-20 text-right text-xs text-zinc-500">
+                        {formatScoreValue(row.previousScore)}
+                      </span>
+                      <span className={`w-20 text-right text-xs font-semibold ${deltaClass}`}>
+                        {Number.isFinite(delta) ? `${delta >= 0 ? "+" : ""}${delta.toFixed(1)}` : "n/a"}
+                      </span>
+                      <span className={`w-24 text-right text-[13px] uppercase ${confidenceClass(row.confidence)}`}>
+                        {row.confidence}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </article>
+
+        <article className="mt-3 border border-tl-border bg-black px-3 py-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm uppercase tracking-[0.08em] text-zinc-300">
+              Liquidity vs Holder Concentration
+            </p>
+            <span className="text-[14px] text-zinc-500">Click a point to analyze token</span>
+          </div>
+          <p className="mb-2 text-xs text-zinc-500">
+            Higher concentration means higher centralization risk.
+          </p>
+          {liquidityVsConcentration.length === 0 ? (
+            <p className="text-sm text-zinc-500">
+              Not enough tokens with liquidity and holder concentration data for this view.
+            </p>
+          ) : (
+            <>
+              <div className="flex items-stretch gap-2">
+                <div className="flex w-6 shrink-0 items-center justify-center text-[12px] uppercase tracking-[0.06em] text-zinc-500 [writing-mode:vertical-rl]">
+                  Holder Concentration
+                </div>
+                <div className="relative h-64 flex-1 overflow-hidden border border-tl-border bg-[#0b0b0b]">
+                  <div className="pointer-events-none absolute inset-0">
+                    <div className="absolute left-0 top-1/3 h-px w-full bg-[#202020]" />
+                    <div className="absolute left-0 top-2/3 h-px w-full bg-[#202020]" />
+                    <div className="absolute left-1/3 top-0 h-full w-px bg-[#202020]" />
+                    <div className="absolute left-2/3 top-0 h-full w-px bg-[#202020]" />
+                  </div>
+                  {liquidityVsConcentration.map((point) => (
+                    <button
+                      key={`liq-conc-${point.mint}`}
+                      type="button"
+                      onClick={() => onAnalyzeToken(point.mint)}
+                      title={`${point.name} | Liquidity ${formatCompactUsd(point.liquidityUsd)} | Concentration ${point.holderConcentrationPct.toFixed(1)}%`}
+                      className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 appearance-none border-0 bg-transparent p-0"
+                      style={{
+                        left: `${point.xPct}%`,
+                        top: `${point.yPct}%`
+                      }}
+                    >
+                      <span
+                        className={`tl-circle block h-2 w-2 border ${statusColorClass(point.status)} ${
+                          selectedMint === point.mint ? "ring-2 ring-white/70" : ""
+                        }`}
+                      />
+                    </button>
+                  ))}
+                  <div className="pointer-events-none absolute bottom-1 left-2 text-[10px] uppercase tracking-[0.06em] text-zinc-500">
+                    Lower Liquidity
+                  </div>
+                  <div className="pointer-events-none absolute bottom-1 right-2 text-[10px] uppercase tracking-[0.06em] text-zinc-500">
+                    Higher Liquidity
+                  </div>
+                </div>
+              </div>
+              <div className="mt-2 flex items-center gap-4 text-[13px] text-zinc-400">
+                <span className="inline-flex items-center gap-1"><span className="tl-circle h-2 w-2 shrink-0 border border-green-400 bg-green-500/70" /> Low risk</span>
+                <span className="inline-flex items-center gap-1"><span className="tl-circle h-2 w-2 shrink-0 border border-amber-300 bg-amber-400/70" /> Medium risk</span>
+                <span className="inline-flex items-center gap-1"><span className="tl-circle h-2 w-2 shrink-0 border border-red-400 bg-red-500/70" /> High risk</span>
+              </div>
+            </>
+          )}
         </article>
       </div>
     </section>

@@ -229,6 +229,10 @@ export interface TokenRiskState {
   state: "pending" | "ready" | "error";
   score?: number;
   status?: RiskStatus;
+  scoreConfidence?: ScoreConfidence;
+  dataSource?: string;
+  warningCount?: number;
+  signalDetails?: TokenRiskSignals;
 }
 
 export type WatchlistAlertSeverity = "minor" | "major" | "critical";

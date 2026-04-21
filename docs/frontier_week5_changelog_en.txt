@@ -1,0 +1,49 @@
+TrustLayer - Week 5 Changelog
+Date range: Apr 22, 2026 - Apr 28, 2026 (in-progress checkpoint)
+
+1) Risk intelligence expansion (table-side insights)
+- Added and stabilized `Risk Change Leaderboard` panel:
+  - score now
+  - score 24h ago (derived trend context)
+  - delta
+  - confidence
+- Added severity-aware sorting by absolute risk movement.
+- Added direct drill-down behavior from leaderboard rows to analyzer context.
+
+2) Liquidity vs Concentration triage map
+- Added scatter-style map:
+  - x-axis: liquidity confidence proxy
+  - y-axis: holder concentration
+- Colored points by risk status for instant cluster reading.
+- Added click-to-analyze on points for fast transition into deep analysis.
+
+3) Narrative context layer
+- Added narrative tagging utility and category mapping:
+  - Stablecoin
+  - Core Asset
+  - DeFi
+  - Meme
+  - Infrastructure
+  - General
+- Added `Narrative` as a dedicated column in Top Tokens table.
+- Added shared `Filter by tag` controls and counts.
+- Wired the same tag filter to both:
+  - Top Tokens table
+  - Market Pulse / insights panel below table
+- Added narrative chip in right-side detail panel (active analyzed token).
+
+4) UX consistency + loading behavior
+- Updated table skeleton and empty-state behavior for filtered mode.
+- Kept row reveal animation consistent under active tag filtering.
+- Preserved existing fallback/caching behavior while adding Week 5 features.
+
+5) QA checkpoint state (Apr 21, 2026 run)
+- Web typecheck: PASS
+- Web build: PASS
+- `npm run qa:week3` smoke suite: PASS
+- `./scripts/smoke_api.sh`: PASS
+
+Notes:
+- Original Week 5 draft mentioned a dedicated Data Quality panel.
+- Scope was intentionally refined to avoid duplicated surface area with existing Coverage/Risk Mix blocks,
+  while preserving core judge-visible intelligence features.

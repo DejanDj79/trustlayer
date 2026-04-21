@@ -1,0 +1,49 @@
+TrustLayer - Week 5 Demo Flow (90s)
+Date: Apr 21, 2026
+
+Goal:
+- Demonstrate Week 5 intelligence upgrades in one coherent analyst flow.
+
+--------------------------------------------------
+0) Setup (before recording)
+--------------------------------------------------
+- Keep app loaded with top table visible.
+- Ensure API is responsive.
+- Keep one stable token and one warning-heavy token ready for clicks.
+
+--------------------------------------------------
+1) Narrative + focus control (0:00 - 0:20)
+--------------------------------------------------
+- Show Top Tokens with `Narrative` column.
+- Toggle `Filter by tag` from `All` to one tag and back.
+- Narration cue: "Narrative tags help segment the market context instantly."
+
+--------------------------------------------------
+2) Risk movement triage (0:20 - 0:40)
+--------------------------------------------------
+- Scroll to `Risk Change Leaderboard`.
+- Click a high-delta row.
+- Show analyzer updates in right panel.
+- Narration cue: "Leaderboard surfaces the strongest movers for fast triage."
+
+--------------------------------------------------
+3) Cluster-based triage (0:40 - 1:00)
+--------------------------------------------------
+- Show `Liquidity vs Holder Concentration` panel.
+- Click 2 points with different colors.
+- Show right panel updates each time.
+- Narration cue: "Map view exposes concentration/liquidity clusters at a glance."
+
+--------------------------------------------------
+4) Detail context (1:00 - 1:20)
+--------------------------------------------------
+- Focus right panel header.
+- Highlight token identity line + narrative chip + score/confidence block.
+- Narration cue: "Detail panel now combines score, reliability, and narrative context."
+
+--------------------------------------------------
+5) Close frame (1:20 - 1:30)
+--------------------------------------------------
+- Return to full layout (table + insights + right panel).
+- Closing line:
+  "Week 5 adds movement intelligence, contextual tagging, and synchronized filtering for faster risk decisions."

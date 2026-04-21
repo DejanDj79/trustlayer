@@ -1,0 +1,97 @@
+TrustLayer - Week 5 QA Checklist
+Date: Apr 21, 2026
+
+Purpose:
+- Validate Week 5 intelligence additions (leaderboard, map, narrative layer) before final checkpoint packaging.
+
+Prerequisites:
+- API running at `http://127.0.0.1:8787`
+- Web app running locally
+
+--------------------------------------------------
+1) Automated checks (required)
+--------------------------------------------------
+
+1. `npm --workspace apps/web run typecheck`
+- Expected: no TypeScript errors.
+
+2. `npm --workspace apps/web run build`
+- Expected: build completes successfully.
+
+3. `npm run qa:week3`
+- Expected:
+  - script ends with `[week3-qa] PASS`
+  - endpoints for health/top-tokens/compare/search/history/profile all pass.
+
+4. `./scripts/smoke_api.sh`
+- Expected:
+  - `/health` ok
+  - sample score calls complete
+  - final line: `all checks passed`.
+
+--------------------------------------------------
+2) Manual UI checks (required)
+--------------------------------------------------
+
+1. Narrative filter behavior
+- Steps:
+  - switch between `All`, `Stablecoin`, `Core`, `DeFi`, `Meme`, `Infra`, `General`.
+- Expected:
+  - table rows update per selected tag
+  - count badges match visible subset
+  - empty-state appears only when no token matches.
+
+2. Shared filter propagation
+- Steps:
+  - choose a non-All narrative filter
+  - observe section below top table.
+- Expected:
+  - Market Pulse / insights cards use the same filtered subset
+  - no mismatch between table and insights membership.
+
+3. Detail panel narrative chip
+- Steps:
+  - analyze token from top table
+  - analyze token via search.
+- Expected:
+  - tag chip is shown under token symbol/mint line in right panel
+  - tag color/tone is consistent with table tag style.
+
+4. Risk Change Leaderboard interaction
+- Steps:
+  - click leaderboard row.
+- Expected:
+  - token opens in analyzer context
+  - right panel score/details update for clicked token.
+
+5. Liquidity vs Concentration map interaction
+- Steps:
+  - click several points across different colors.
+- Expected:
+  - selected token updates analyzer
+  - no layout overflow in map/card containers.
+
+--------------------------------------------------
+3) Edge-state checks
+--------------------------------------------------
+
+1. Narrow desktop width / responsive stress
+- Expected: no clipped columns, no horizontal content bleed outside panel borders.
+
+2. Fallback mode / warning-heavy token
+- Expected:
+  - warnings remain readable
+  - app remains responsive
+  - score card still renders complete sections.
+
+3. Filter + selection interaction
+- Steps:
+  - select token, then switch to a filter that excludes it.
+- Expected:
+  - table no longer shows token
+  - app does not crash and analyzer state remains coherent.
+
+Exit criteria for Week 5 checkpoint:
+- automated checks pass
+- no blocker UI/API issues
+- no major layout overflow in core screens.

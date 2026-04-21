@@ -1,0 +1,92 @@
+Frontier Hackathon - Week 5 Video
+Project: TrustLayer
+Format: Screen-only demo (no face camera)
+Target length: 75-90 seconds
+Checkpoint date: Apr 21, 2026
+
+==================================================
+1) Voiceover Script (Week 5, Relative to Week 4)
+==================================================
+
+Hi everyone, this is our Week 5 update for TrustLayer.
+
+In Week 4 we focused on stability, loading polish, and reliable trend behavior.
+In Week 5 we focused on intelligence depth and faster decision context.
+
+First, we added a Risk Change Leaderboard that highlights the strongest risk movers,
+with score deltas and confidence, so users can spot meaningful shifts quickly.
+
+Second, we introduced a Liquidity versus Holder Concentration map.
+This gives a fast visual triage of token risk posture and lets users click directly
+into full analysis.
+
+Third, we added narrative context with tag chips like Stablecoin, DeFi, or Meme.
+Narrative is now visible in the Top Tokens table and also in the right-side detail panel.
+
+Finally, we added shared filtering by narrative tags.
+When you select a tag, both the top table and the insights section below it stay synchronized,
+which keeps the view focused and coherent.
+
+Week 5 checkpoint confirms that TrustLayer now combines scoring, movement, and context
+in a cleaner analyst workflow.
+
+==================================================
+2) Shot List (Screen Recording Guide)
+==================================================
+
+Timeline guide (about 85 sec total):
+
+00:00 - 00:08
+Shot: Open app full layout with one token already selected.
+Overlay (optional): "TrustLayer - Week 5 Checkpoint"
+
+00:08 - 00:24
+Shot: Top Tokens table.
+Action:
+- point to new `Narrative` column
+- switch `Filter by tag` from All to one specific tag and back
+Capture: shared context and focus control.
+
+00:24 - 00:40
+Shot: Risk Change Leaderboard section.
+Action:
+- show sorting by strongest movement
+- click one row to open token analysis
+Capture: movement-driven drill-down workflow.
+
+00:40 - 00:57
+Shot: Liquidity vs Holder Concentration map.
+Action:
+- click 2-3 points of different colors
+- show right panel updating each time
+Capture: visual triage + one-click analysis.
+
+00:57 - 01:12
+Shot: Right detail panel header.
+Action:
+- highlight token identity line and narrative chip
+- show score card remains aligned
+Capture: narrative context in detail view.
+
+01:12 - 01:25
+Shot: End frame over full layout.
+Overlay (optional):
+"Week 5: Risk movement intelligence + narrative context"
+
+==================================================
+3) Recording Checklist
+==================================================
+
+- Browser zoom 100%, full-screen window.
+- Keep app on dark theme baseline as shipped.
+- Use one token with warnings and one cleaner token for contrast.
+- Record one smooth take; keep mouse movements deliberate.
+
+==================================================
+4) Editing Notes
+==================================================
+
+- Keep captions short and feature-specific.
+- Avoid long static holds; prefer purposeful transitions.
+- Export: 1080p, 30fps.
+- Final length target: 75-90 seconds.

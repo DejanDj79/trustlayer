@@ -1,0 +1,59 @@
+TrustLayer - Week 5 QA Run Report
+Date: 2026-04-21
+Environment: User local machine (`agar@agar-Lenovo`)
+
+==================================================
+Automated Checks Executed
+==================================================
+
+1) Web typecheck
+- Command: `npm --workspace apps/web run typecheck`
+- Result: PASS
+
+2) Web production build
+- Command: `npm --workspace apps/web run build`
+- Result: PASS
+
+3) API/flow smoke suite
+- Command: `npm run qa:week3`
+- Result: PASS
+- Runtime highlights:
+  - health ok | providers=3 | cacheEntries=19
+  - top tokens ok | count=20 | source=coingecko
+  - compare endpoint ok
+  - token-search ok | query="USDT" | hits=4
+  - history + token profile endpoints ok
+
+4) Basic API smoke
+- Command: `./scripts/smoke_api.sh`
+- Result: PASS
+- Runtime highlights:
+  - /health ok | providers=3 | cacheEntries=20
+  - scored `So11111111111111111111111111111111111111112`
+  - scored `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`
+  - all checks passed
+
+==================================================
+Feature-focused QA Notes (Week 5)
+==================================================
+
+Validated in this checkpoint:
+- Narrative taxonomy integration is build-clean and API-safe.
+- Shared narrative filtering path is compile-safe across:
+  - Top Tokens table
+  - Market Pulse / insights panel
+- Detail panel now includes narrative chip for active token context.
+
+Known external variable:
+- RPC/provider quality can still affect confidence levels and warning volume,
+  but flow remains stable under fallback conditions.
+
+==================================================
+Release Readiness Note (Week 5 in-progress)
+==================================================
+
+- Automated gate status: PASS
+- Core Week 5 feature integration: PASS
+- Remaining before final lock:
+  - manual UI edge-case sweep from Week 5 checklist
+  - final docs/demo submission packaging.

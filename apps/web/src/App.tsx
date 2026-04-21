@@ -8,11 +8,17 @@ import { TopTokensTable } from "./components/TopTokensTable";
 import { WatchlistPanel } from "./components/WatchlistPanel";
 import { API_BASE, requestJsonWithRetry } from "./lib/api";
 import { fallbackLogoUrlForMint, initials, shortMint } from "./lib/format";
+import {
+  narrativeTagForToken,
+  narrativeToneClass,
+  type NarrativeFilter
+} from "./lib/narrative";
 import type {
   CompareResponse,
   ScoreResponse,
   ScoreHistoryResponse,
   TokenProfileResponse,
+  TokenRiskSignals,
   TokenSearchItem,
   TokenSearchResponse,
   TokenRiskState,
@@ -50,6 +56,10 @@ const BASE58_MINT_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 interface TopTokenRiskCacheEntry {
   score: number;
   status: string;
+  scoreConfidence?: string;
+  dataSource?: string;
+  warningCount?: number;
+  signalDetails?: TokenRiskSignals;
   updatedAt: number;
 }
 
@@ -224,6 +234,7 @@ export default function App() {
   const [topTokensLoading, setTopTokensLoading] = useState(false);
   const [topTokensReadyOnce, setTopTokensReadyOnce] = useState(false);
   const [topTokensError, setTopTokensError] = useState<string | null>(null);
+  const [activeNarrativeFilter, setActiveNarrativeFilter] = useState<NarrativeFilter>("all");
   const [topTokenRisks, setTopTokenRisks] = useState<Record<string, TokenRiskState>>({});
   const topTokenNonceRef = useRef(0);
   const topTokenRisksRef = useRef<Record<string, TokenRiskState>>({});
@@ -333,7 +344,15 @@ export default function App() {
     topTokenRisksRef.current = topTokenRisks;
   }, [topTokenRisks]);
 
-  const rememberTopTokenRisk = useCallback((mintToStore: string, score: number, status?: string) => {
+  const rememberTopTokenRisk = useCallback((
+    mintToStore: string,
+    score: number,
+    status?: string,
+    scoreConfidence?: string,
+    dataSource?: string,
+    warnings?: string[],
+    signalDetails?: TokenRiskSignals
+  ) => {
     const normalizedMint = String(mintToStore || "").trim();
     const numericScore = Number(score);
     if (!BASE58_MINT_RE.test(normalizedMint) || !Number.isFinite(numericScore)) {
@@ -342,6 +361,10 @@ export default function App() {
     topTokenScoreCacheRef.current.set(normalizedMint, {
       score: numericScore,
       status: String(status || "yellow"),
+      scoreConfidence: scoreConfidence ? String(scoreConfidence) : undefined,
+      dataSource: dataSource ? String(dataSource) : undefined,
+      warningCount: Array.isArray(warnings) ? warnings.length : 0,
+      signalDetails: signalDetails || undefined,
       updatedAt: Date.now()
     });
   }, []);
@@ -365,16 +388,32 @@ export default function App() {
         [normalizedMint]: {
           state: "ready",
           score: payload.score,
-          status: payload.status
+          status: payload.status,
+          scoreConfidence: payload.scoreConfidence,
+          dataSource: payload.dataSource,
+          warningCount: Array.isArray(payload.warnings) ? payload.warnings.length : 0,
+          signalDetails: payload.signalDetails || undefined
         }
       }));
-      rememberTopTokenRisk(normalizedMint, payload.score, payload.status);
+      rememberTopTokenRisk(
+        normalizedMint,
+        payload.score,
+        payload.status,
+        payload.scoreConfidence,
+        payload.dataSource,
+        payload.warnings,
+        payload.signalDetails
+      );
       setWatchlistRisks((current) => ({
         ...current,
         [normalizedMint]: {
           state: "ready",
           score: payload.score,
-          status: payload.status
+          status: payload.status,
+          scoreConfidence: payload.scoreConfidence,
+          dataSource: payload.dataSource,
+          warningCount: Array.isArray(payload.warnings) ? payload.warnings.length : 0,
+          signalDetails: payload.signalDetails || undefined
         }
       }));
       if (watchlistMintSet.has(normalizedMint)) {
@@ -458,7 +497,11 @@ export default function App() {
           initialRisks[token.mint] = {
             state: "ready",
             score: cached.score,
-            status: cached.status
+            status: cached.status,
+            scoreConfidence: cached.scoreConfidence,
+            dataSource: cached.dataSource,
+            warningCount: cached.warningCount,
+            signalDetails: cached.signalDetails
           };
           continue;
         }
@@ -468,7 +511,11 @@ export default function App() {
           initialRisks[token.mint] = {
             state: "ready",
             score: existing.score,
-            status: existing.status
+            status: existing.status,
+            scoreConfidence: existing.scoreConfidence,
+            dataSource: existing.dataSource,
+            warningCount: existing.warningCount,
+            signalDetails: existing.signalDetails
           };
         } else {
           initialRisks[token.mint] = { state: "pending" };
@@ -496,9 +543,21 @@ export default function App() {
                 aggregatedRisks[token.mint] = {
                   state: "ready",
                   score: score.score,
-                  status: score.status
+                  status: score.status,
+                  scoreConfidence: score.scoreConfidence,
+                  dataSource: score.dataSource,
+                  warningCount: Array.isArray(score.warnings) ? score.warnings.length : 0,
+                  signalDetails: score.signalDetails || undefined
                 };
-                rememberTopTokenRisk(token.mint, score.score, score.status);
+                rememberTopTokenRisk(
+                  token.mint,
+                  score.score,
+                  score.status,
+                  score.scoreConfidence,
+                  score.dataSource,
+                  score.warnings,
+                  score.signalDetails
+                );
               } catch {
                 if (nonce !== topTokenNonceRef.current) {
                   return;
@@ -1090,7 +1149,11 @@ export default function App() {
                 [itemMint]: {
                   state: "ready",
                   score: score.score,
-                  status: score.status
+                  status: score.status,
+                  scoreConfidence: score.scoreConfidence,
+                  dataSource: score.dataSource,
+                  warningCount: Array.isArray(score.warnings) ? score.warnings.length : 0,
+                  signalDetails: score.signalDetails || undefined
                 }
               }));
               const previousScore = watchlistLastScoresRef.current[itemMint];
@@ -1106,10 +1169,22 @@ export default function App() {
                 [itemMint]: {
                   state: "ready",
                   score: score.score,
-                  status: score.status
+                  status: score.status,
+                  scoreConfidence: score.scoreConfidence,
+                  dataSource: score.dataSource,
+                  warningCount: Array.isArray(score.warnings) ? score.warnings.length : 0,
+                  signalDetails: score.signalDetails || undefined
                 }
               }));
-              rememberTopTokenRisk(itemMint, score.score, score.status);
+              rememberTopTokenRisk(
+                itemMint,
+                score.score,
+                score.status,
+                score.scoreConfidence,
+                score.dataSource,
+                score.warnings,
+                score.signalDetails
+              );
             } catch {
               if (nonce !== watchlistNonceRef.current) {
                 return;
@@ -1242,6 +1317,30 @@ export default function App() {
   const activeTokenImage = activeMint
     ? ((activeToken?.imageUrl || "").trim() || externalTokenImage || fallbackLogoUrlForMint(activeMint))
     : "";
+  const activeNarrativeTag = useMemo(() => {
+    if (!activeMint) {
+      return null;
+    }
+    return narrativeTagForToken({
+      rank: Number(activeToken?.rank || 0),
+      symbol: String(activeTokenSymbol || ""),
+      name: String(activeTokenName || ""),
+      mint: activeMint,
+      coingeckoId: activeToken?.coingeckoId || null,
+      priceUsd: activeToken?.priceUsd ?? null,
+      marketCapUsd: activeToken?.marketCapUsd ?? null,
+      change24hPct: activeToken?.change24hPct ?? null,
+      lastUpdatedAt: activeToken?.lastUpdatedAt ?? null,
+      sparkline7d: activeToken?.sparkline7d ?? null,
+      imageUrl: activeToken?.imageUrl || externalTokenImage || null
+    });
+  }, [activeMint, activeToken, activeTokenName, activeTokenSymbol, externalTokenImage]);
+  const filteredTopTokensByNarrative = useMemo(() => {
+    if (activeNarrativeFilter === "all") {
+      return topTokens;
+    }
+    return topTokens.filter((token) => narrativeTagForToken(token).tone === activeNarrativeFilter);
+  }, [activeNarrativeFilter, topTokens]);
   const showActiveTokenImage = Boolean(activeTokenImage) && !activeImageFailed;
   const compareBaseMint = String(scoreData?.mint || "").trim();
   const compareDisplayData = useMemo(() => {
@@ -1583,6 +1682,8 @@ export default function App() {
                 cacheAgeMs={topTokensCacheAgeMs}
                 cacheTtlMs={topTokensCacheTtlMs}
                 selectedMint={selectedMint}
+                activeNarrativeFilter={activeNarrativeFilter}
+                onNarrativeFilterChange={setActiveNarrativeFilter}
                 watchlistMints={watchlistMintSet}
                 onRefreshNow={() => {
                   void fetchTopTokens({ forceRefresh: true });
@@ -1596,7 +1697,7 @@ export default function App() {
               />
 
               <TableInsightsPanel
-                tokens={topTokens}
+                tokens={filteredTopTokensByNarrative}
                 risks={topTokenRisks}
                 showInitialSkeleton={!topTokensReadyOnce && topTokensLoading}
                 source={topTokensSource}
@@ -1946,6 +2047,15 @@ export default function App() {
                       <p className="truncate text-xs text-tl-muted">
                         {activeTokenSymbol} · {shortMint(activeMint)}
                       </p>
+                      {activeNarrativeTag ? (
+                        <span
+                          className={`mt-1 inline-flex border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.06em] ${narrativeToneClass(
+                            activeNarrativeTag.tone
+                          )}`}
+                        >
+                          {activeNarrativeTag.label}
+                        </span>
+                      ) : null}
                     </div>
                     <button
                       type="button"
