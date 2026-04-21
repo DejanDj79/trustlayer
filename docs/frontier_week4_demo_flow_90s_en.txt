@@ -1,0 +1,55 @@
+TrustLayer - Week 4 Demo Flow (90s)
+
+Goal:
+- Show that TrustLayer moved from feature-heavy iteration to stable, presentation-ready UX quality.
+
+Timing:
+- 90 seconds total.
+
+--------------------------------------------------
+0-15s: Entry and positioning
+--------------------------------------------------
+- Open app and hold top section.
+- Voiceover:
+  - "TrustLayer gives pre-trade Solana token risk visibility, now with improved data freshness transparency."
+
+--------------------------------------------------
+15-35s: Top table transparency
+--------------------------------------------------
+- Show top table right header area:
+  - source
+  - sync now
+  - last sync
+  - cache age
+- Voiceover:
+  - "Users can now see how fresh data is and force refresh when needed."
+
+--------------------------------------------------
+35-55s: Interaction continuity
+--------------------------------------------------
+- Click one token from table.
+- Show right-side analysis panel updates.
+- Voiceover:
+  - "Selection flow is stable and consistent across table and analyzer states."
+
+--------------------------------------------------
+55-72s: Market Pulse reliability
+--------------------------------------------------
+- Scroll to Market Pulse.
+- Switch timeframe from 24h to 7d and back once.
+- Voiceover:
+  - "We simplified and stabilized trend rendering with a cleaner 24h/7d model."
+
+--------------------------------------------------
+72-85s: Loading polish
+--------------------------------------------------
+- Show skeleton state with refresh/reload.
+- Voiceover:
+  - "Both top table and market pulse now have polished first-load behavior."
+
+--------------------------------------------------
+85-90s: Closing line
+--------------------------------------------------
+- End frame on full layout.
+- Voiceover:
+  - "Week 4 focused on reliability and polish. Week 5 will add deeper intelligence panels."

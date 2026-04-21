@@ -1,147 +1,80 @@
 TRUSTLAYER - WEEK 4 DAY-BY-DAY PLAN
-Period: 27 Apr 2026 - 03 May 2026
+Period: 14 Apr 2026 - 21 Apr 2026 (accelerated internal checkpoint)
 
-STATUS SNAPSHOT (as of 20 Apr 2026, locked from Week 3 review)
-- [IN PROGRESS] API hardening je zapocet ranije (retry, timeout, fallback, diagnostics).
-- [TODO] Formalni test matrix, contract test suite i golden-token validation pass.
-- [TODO] Deployment runbook + staging/production operativna procedura.
-- [TODO] Full e2e final pass na clean environment-u.
-- [LOCKED INPUT] Week 4 priorities confirmed in:
-  - `docs/frontier_week3_review_and_week4_backlog_lock_en.txt`
+STATUS SNAPSHOT (locked on 21 Apr 2026)
+- [DONE] Week 4 scope closed on branch `week4-ui-wip`.
+- [DONE] Market Pulse chart stability pass (timeframes simplified to 24h and 7d).
+- [DONE] Fallback chart logic improved to avoid blank states and reduce flat-line confusion.
+- [DONE] Top Tokens transparency improvements:
+  - sync now action
+  - last sync timestamp
+  - cache age visibility
+- [DONE] Skeleton loading polish:
+  - top tokens table initial skeleton
+  - market pulse section initial skeleton
+- [DONE] UX consistency pass for selected rows/panels and loading states.
 
 Goal of week 4:
-- Stabilizacija, testiranje i produkcioni kvalitet za submission.
+- Ship a visually consistent, demo-safe UX checkpoint suitable for weekly video recording.
 
 --------------------------------------------------
-DAY 22 (27 Apr) - TEST PLAN LOCK
+DAY 22 (14 Apr) - UI consistency baseline
 --------------------------------------------------
-
-Objectives:
-- Zakljucati sta tacno testiramo do kraja.
-
-Tasks:
-1. Definisati test matrix:
-   - unit
-   - integration
-   - e2e
-2. Odabrati "golden token" set (20-30 tokena).
-3. Definisati acceptance kriterijume po flow-u.
-4. Napraviti bug triage board.
-
-Definition of done:
-- Tim zna sta je "done" za finalnu predaju.
+Status: [DONE]
+- Unified header/panel/table spacing and border behavior.
+- Refined analyzer panel interactions and state transitions.
 
 --------------------------------------------------
-DAY 23 (28 Apr) - API HARDENING
+DAY 23 (15 Apr) - Table + right panel interaction polish
 --------------------------------------------------
-
-Objectives:
-- Ojacati backend za peak usage i edge case-ove.
-
-Tasks:
-1. Idempotent handling za score racunanje.
-2. Timeout/retry tuning.
-3. Batch endpoint (optional):
-   - POST /v1/score/batch
-4. Dodati contract testove za API response.
-
-Definition of done:
-- API response format stabilan i predvidiv.
+Status: [DONE]
+- Improved selected-row continuity into analysis panel.
+- Fixed visual regressions around token avatars and panel spacing.
 
 --------------------------------------------------
-DAY 24 (29 Apr) - DATA QUALITY PASS
+DAY 24 (16 Apr) - Watchlist and alerts UX cleanup
 --------------------------------------------------
-
-Objectives:
-- Smanjiti false positive/false negative score anomalije.
-
-Tasks:
-1. Analiza score rezultata na golden token set-u.
-2. Fine-tuning tezina i threshold-a.
-3. Dokumentovati promene scoring formule.
-4. Validirati da tuning nije degradirao stabilnost.
-
-Definition of done:
-- Score deluje konzistentno na glavnim kategorijama tokena.
+Status: [DONE]
+- Reworked watchlist header density and control grouping.
+- Improved alerts readability and panel organization.
 
 --------------------------------------------------
-DAY 25 (30 Apr) - FRONTEND PRODUCTION POLISH
+DAY 25 (17 Apr) - Chart and trend iteration
 --------------------------------------------------
-
-Objectives:
-- Zatvoriti UI nedostatke i pristupacnost.
-
-Tasks:
-1. A11y osnova:
-   - focus states
-   - semantic labels
-2. SEO/osnovni metadata.
-3. Responsive final pass (mobile/tablet/desktop).
-4. Vizuelna konzistentnost i spacing cleanup.
-
-Definition of done:
-- UI izgleda zavrseno i profesionalno.
+Status: [DONE]
+- Reworked trend rendering behavior.
+- Simplified timeframe options to user-relevant set.
 
 --------------------------------------------------
-DAY 26 (01 May) - DEPLOYMENT + OPS
+DAY 26 (18 Apr) - Data transparency in top table
 --------------------------------------------------
-
-Objectives:
-- Uciniti deploy reproducibilnim i bez stresa.
-
-Tasks:
-1. Produkcioni deploy frontend + api + db migracije.
-2. Staging i production env sanity check.
-3. Dodati uptime check + basic alerts.
-4. Runbook:
-   - kako restartovati
-   - kako rollback-ovati
-
-Definition of done:
-- Imas stabilan live URL i jasnu operativnu proceduru.
+Status: [DONE]
+- Added explicit sync metadata and cache indicators.
+- Clarified CoinGecko alignment text and row-level verification link.
 
 --------------------------------------------------
-DAY 27 (02 May) - E2E FINAL PASS
+DAY 27 (19 Apr) - Loading behavior and skeletons
 --------------------------------------------------
-
-Objectives:
-- Simulirati iskustvo sudije od pocetka do kraja.
-
-Tasks:
-1. Full e2e prolaz kroz 10+ scenarija.
-2. Popraviti sve kriticne bugove.
-3. Pripremiti fallback demo scenarije.
-4. Zakljuciti "known limitations" listu.
-
-Definition of done:
-- Nema kriticnih bagova u demo flow-u.
+Status: [DONE]
+- Added initial skeleton behavior for top table.
+- Added initial skeleton behavior for market pulse section.
 
 --------------------------------------------------
-DAY 28 (03 May) - WEEK 4 REVIEW
+DAY 28 (20-21 Apr) - Week 4 close + handoff prep
 --------------------------------------------------
-
-Objectives:
-- Priprema za submission week.
-
-Tasks:
-1. Internal dry run pitch (3 min).
-2. Weekly update:
-   - stability status
-   - open risks
-   - plan za finalnu nedelju
-3. Feature freeze kandidat lista.
-
-Definition of done:
-- Jasno je sta ulazi, a sta ne ulazi u final build.
+Status: [DONE]
+- Final bugfix pass for chart edge cases.
+- Prepared Week 4 video script and changelog assets.
+- Locked branch for Week 4 checkpoint recording.
 
 --------------------------------------------------
 WEEK 4 SUCCESS CHECKLIST
 --------------------------------------------------
 
-1. Live deploy stabilan.
-2. API + UI production-polished.
-3. Score formula kalibrisana i dokumentovana.
-4. Kriticni e2e scenariji prolaze.
-5. Spreman teren za final submission week.
+1. Core UI sections have stable loading states.
+2. Chart rendering is understandable and consistent for demos.
+3. Top table sync/cache transparency is visible to users.
+4. Week 4 documentation assets are prepared.
+5. Branch state is ready for video recording checkpoint.
 
-If all 5 are true -> Week 4 is successful.
+If all 5 are true -> Week 4 is closed.

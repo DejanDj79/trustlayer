@@ -68,6 +68,12 @@ const TOP_TOKENS_MAX_LIMIT = Number(process.env.TOP_TOKENS_MAX_LIMIT || 30);
 const TOP_TOKENS_MARKETS_FETCH_SIZE = Number(process.env.TOP_TOKENS_MARKETS_FETCH_SIZE || 80);
 const TOP_TOKENS_CACHE_TTL_MS = Number(process.env.TOP_TOKENS_CACHE_TTL_MS || 300000);
 const TOP_TOKENS_TIMEOUT_MS = Number(process.env.TOP_TOKENS_TIMEOUT_MS || 10000);
+const TOKEN_CHART_TIMEOUT_MS = Number(process.env.TOKEN_CHART_TIMEOUT_MS || 10000);
+const TOKEN_CHART_MAX_MINTS = Number(process.env.TOKEN_CHART_MAX_MINTS || 12);
+const TOKEN_CHART_MAX_POINTS = Number(process.env.TOKEN_CHART_MAX_POINTS || 72);
+const COINGECKO_COIN_LIST_CACHE_TTL_MS = Number(
+  process.env.COINGECKO_COIN_LIST_CACHE_TTL_MS || 21600000
+);
 const TOKEN_SEARCH_DEFAULT_LIMIT = Number(process.env.TOKEN_SEARCH_DEFAULT_LIMIT || 8);
 const TOKEN_SEARCH_MAX_LIMIT = Number(process.env.TOKEN_SEARCH_MAX_LIMIT || 20);
 const JUPITER_TOKEN_LIST_URL = process.env.JUPITER_TOKEN_LIST_URL || "https://token.jup.ag/strict";
@@ -82,6 +88,12 @@ const scoreCache = new Map();
 const scoreBuildInFlight = new Map();
 const scoreHistoryByMint = new Map();
 const topTokensCache = new Map();
+const tokenChartCache = new Map();
+const topTokenCoinIdByMint = new Map();
+const coingeckoCoinIdByMintCache = {
+  entries: new Map(),
+  cachedAt: 0
+};
 const tokenCatalogByMintCache = {
   entries: new Map(),
   cachedAt: 0
@@ -92,6 +104,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     symbol: "SOL",
     name: "Wrapped SOL",
     mint: "So11111111111111111111111111111111111111112",
+    coingeckoId: "solana",
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
@@ -104,6 +117,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     symbol: "USDC",
     name: "USD Coin",
     mint: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+    coingeckoId: "usd-coin",
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
@@ -116,6 +130,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     symbol: "USDT",
     name: "Tether USD",
     mint: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
+    coingeckoId: "tether",
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
@@ -128,6 +143,7 @@ const TOP_SOLANA_TOKENS_FALLBACK = [
     symbol: "JUP",
     name: "Jupiter",
     mint: "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+    coingeckoId: "jupiter-exchange-solana",
     priceUsd: null,
     marketCapUsd: null,
     change24hPct: null,
@@ -413,6 +429,102 @@ function normalizeTokenSearchLimit(rawValue) {
     return Math.max(1, Math.min(fallback, TOKEN_SEARCH_MAX_LIMIT));
   }
   return Math.max(1, Math.min(Math.trunc(parsed), TOKEN_SEARCH_MAX_LIMIT));
+}
+
+const TOKEN_CHART_TIMEFRAME_WINDOW_MS = Object.freeze({
+  "1h": 60 * 60 * 1000,
+  "4h": 4 * 60 * 60 * 1000,
+  "1d": 24 * 60 * 60 * 1000,
+  "24h": 24 * 60 * 60 * 1000,
+  "7d": 7 * 24 * 60 * 60 * 1000
+});
+
+function normalizeTokenChartTimeframe(rawValue) {
+  const normalized = String(rawValue || "24h").trim().toLowerCase();
+  if (Object.prototype.hasOwnProperty.call(TOKEN_CHART_TIMEFRAME_WINDOW_MS, normalized)) {
+    return normalized;
+  }
+  return null;
+}
+
+function normalizeTokenChartMints(parsedUrl) {
+  const candidates = [];
+  const mintsCsv = String(parsedUrl.searchParams.get("mints") || "").trim();
+  if (mintsCsv) {
+    candidates.push(...mintsCsv.split(","));
+  }
+  const repeated = parsedUrl.searchParams.getAll("mint");
+  if (repeated.length > 0) {
+    candidates.push(...repeated);
+  }
+
+  const deduped = [];
+  const seen = new Set();
+  for (const value of candidates) {
+    const mint = String(value || "").trim();
+    if (!validateMint(mint) || seen.has(mint)) {
+      continue;
+    }
+    seen.add(mint);
+    deduped.push(mint);
+    if (deduped.length >= TOKEN_CHART_MAX_MINTS) {
+      break;
+    }
+  }
+  return deduped;
+}
+
+function downsampleSeries(values, maxPoints) {
+  const numeric = Array.isArray(values) ? values.filter((value) => Number.isFinite(Number(value))) : [];
+  if (numeric.length <= maxPoints) {
+    return numeric.map((value) => Number(value));
+  }
+  const selected = [];
+  const stride = (numeric.length - 1) / Math.max(1, maxPoints - 1);
+  for (let index = 0; index < maxPoints; index += 1) {
+    const sourceIndex = Math.round(index * stride);
+    selected.push(Number(numeric[sourceIndex]));
+  }
+  return selected;
+}
+
+function computeSeriesChangePct(series) {
+  const values = Array.isArray(series) ? series : [];
+  if (values.length < 2) {
+    return null;
+  }
+  const start = Number(values[0]);
+  const end = Number(values[values.length - 1]);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start <= 0) {
+    return null;
+  }
+  return ((end - start) / start) * 100;
+}
+
+function getTokenChartTtlMs(timeframe) {
+  if (timeframe === "1h") {
+    return 60000;
+  }
+  if (timeframe === "4h") {
+    return 120000;
+  }
+  if (timeframe === "1d" || timeframe === "24h") {
+    return 180000;
+  }
+  return 300000;
+}
+
+function getTokenChartMaxPoints(timeframe) {
+  if (timeframe === "1h") {
+    return 60;
+  }
+  if (timeframe === "4h") {
+    return 96;
+  }
+  if (timeframe === "1d" || timeframe === "24h") {
+    return 144;
+  }
+  return TOKEN_CHART_MAX_POINTS;
 }
 
 function normalizeSearchText(value) {
@@ -1836,14 +1948,15 @@ async function fetchDexScreenerSearchCandidates(query, limit) {
   }
 }
 
-async function fetchTopSolanaTokens(limit) {
+async function fetchTopSolanaTokens(limit, options = {}) {
   const normalizedLimit = normalizeTopTokensLimit(limit);
   const cacheKey = String(normalizedLimit);
+  const forceRefresh = Boolean(options?.forceRefresh);
   const cached = topTokensCache.get(cacheKey);
   const now = Date.now();
   const tokenLogosByMint = await fetchTokenLogosByMint();
 
-  if (cached && now - cached.cachedAt < TOP_TOKENS_CACHE_TTL_MS) {
+  if (!forceRefresh && cached && now - cached.cachedAt < TOP_TOKENS_CACHE_TTL_MS) {
     const tokensWithImages = enrichTokensWithImageUrls(cached.tokens, tokenLogosByMint);
     topTokensCache.set(cacheKey, {
       ...cached,
@@ -1865,6 +1978,7 @@ async function fetchTopSolanaTokens(limit) {
     marketsUrl.searchParams.set("per_page", String(fetchSize));
     marketsUrl.searchParams.set("page", "1");
     marketsUrl.searchParams.set("sparkline", "true");
+    marketsUrl.searchParams.set("price_change_percentage", "24h");
 
     const listUrl = `${COINGECKO_API_BASE}/coins/list?include_platform=true`;
 
@@ -1884,38 +1998,57 @@ async function fetchTopSolanaTokens(limit) {
         continue;
       }
       mintByCoinId.set(id, mint);
+      coingeckoCoinIdByMintCache.entries.set(mint, id);
     }
+    coingeckoCoinIdByMintCache.cachedAt = Date.now();
 
     const tokens = [];
     for (const market of markets) {
-      const mint = mintByCoinId.get(market?.id);
+      const coinId = String(market?.id || "").trim();
+      const mint = mintByCoinId.get(coinId);
       if (!mint) {
         continue;
       }
+      if (coinId) {
+        topTokenCoinIdByMint.set(mint, coinId);
+      }
+      const change24hCandidate = Number(
+        market?.price_change_percentage_24h_in_currency ?? market?.price_change_percentage_24h
+      );
       tokens.push({
         rank: Number(market?.market_cap_rank || tokens.length + 1),
         symbol: String(market?.symbol || "").toUpperCase(),
         name: String(market?.name || "Unknown"),
         mint,
+        coingeckoId: coinId || null,
         priceUsd: Number.isFinite(Number(market?.current_price))
           ? Number(market.current_price)
           : null,
         marketCapUsd: Number.isFinite(Number(market?.market_cap))
           ? Number(market.market_cap)
           : null,
-        change24hPct: Number.isFinite(Number(market?.price_change_percentage_24h))
-          ? Number(market.price_change_percentage_24h)
+        change24hPct: Number.isFinite(change24hCandidate)
+          ? change24hCandidate
           : null,
         sparkline7d: Array.isArray(market?.sparkline_in_7d?.price)
           ? market.sparkline_in_7d.price
               .map((value) => Number(value))
               .filter((value) => Number.isFinite(value))
           : null,
-        imageUrl: market?.image || null
+        imageUrl: market?.image || null,
+        lastUpdatedAt: String(market?.last_updated || "").trim() || null
       });
       if (tokens.length >= normalizedLimit) {
         break;
       }
+    }
+
+    while (topTokenCoinIdByMint.size > 600) {
+      const oldestKey = topTokenCoinIdByMint.keys().next().value;
+      if (!oldestKey) {
+        break;
+      }
+      topTokenCoinIdByMint.delete(oldestKey);
     }
 
     if (tokens.length === 0) {
@@ -1952,6 +2085,280 @@ async function fetchTopSolanaTokens(limit) {
       fallback.cache
     );
   }
+}
+
+async function fetchCoinGeckoCoinIdByMintMap() {
+  const ageMs = Date.now() - coingeckoCoinIdByMintCache.cachedAt;
+  if (
+    coingeckoCoinIdByMintCache.cachedAt > 0 &&
+    ageMs < COINGECKO_COIN_LIST_CACHE_TTL_MS &&
+    coingeckoCoinIdByMintCache.entries.size > 0
+  ) {
+    return coingeckoCoinIdByMintCache.entries;
+  }
+
+  try {
+    const listUrl = `${COINGECKO_API_BASE}/coins/list?include_platform=true`;
+    const payload = await fetchJsonWithTimeout(listUrl, TOP_TOKENS_TIMEOUT_MS);
+    const list = Array.isArray(payload) ? payload : [];
+    const entries = new Map();
+    for (const coin of list) {
+      const id = String(coin?.id || "").trim();
+      const mint = String(coin?.platforms?.solana || "").trim();
+      if (!id || !validateMint(mint)) {
+        continue;
+      }
+      entries.set(mint, id);
+    }
+    if (entries.size > 0) {
+      coingeckoCoinIdByMintCache.entries = entries;
+      coingeckoCoinIdByMintCache.cachedAt = Date.now();
+    }
+  } catch {
+    if (coingeckoCoinIdByMintCache.cachedAt === 0) {
+      coingeckoCoinIdByMintCache.cachedAt = Date.now();
+    }
+  }
+
+  return coingeckoCoinIdByMintCache.entries;
+}
+
+async function resolveCoinGeckoIdByMint(mint) {
+  const normalizedMint = String(mint || "").trim();
+  if (!validateMint(normalizedMint)) {
+    return null;
+  }
+  const recentTopTokenId = topTokenCoinIdByMint.get(normalizedMint);
+  if (recentTopTokenId) {
+    return recentTopTokenId;
+  }
+  const mapping = await fetchCoinGeckoCoinIdByMintMap();
+  return String(mapping.get(normalizedMint) || "").trim() || null;
+}
+
+function normalizeMarketChartPricePoints(rawPrices) {
+  const points = [];
+  const rows = Array.isArray(rawPrices) ? rawPrices : [];
+  for (const row of rows) {
+    if (!Array.isArray(row) || row.length < 2) {
+      continue;
+    }
+    const timestamp = Number(row[0]);
+    const value = Number(row[1]);
+    if (!Number.isFinite(timestamp) || !Number.isFinite(value) || value <= 0) {
+      continue;
+    }
+    points.push({ timestamp, value });
+  }
+  points.sort((a, b) => a.timestamp - b.timestamp);
+  return points;
+}
+
+function selectChartWindowValues(points, timeframe) {
+  const rows = Array.isArray(points) ? points : [];
+  if (rows.length < 2) {
+    return [];
+  }
+  const windowMs = TOKEN_CHART_TIMEFRAME_WINDOW_MS[timeframe] || TOKEN_CHART_TIMEFRAME_WINDOW_MS["24h"];
+  const endTs = Number(rows[rows.length - 1].timestamp || Date.now());
+  const startTs = endTs - windowMs;
+  let firstInsideIndex = rows.findIndex((point) => Number(point.timestamp) >= startTs);
+  if (firstInsideIndex === -1) {
+    firstInsideIndex = Math.max(0, rows.length - 2);
+  }
+  const sliceStart = Math.max(0, firstInsideIndex - 1);
+  return rows.slice(sliceStart).map((point) => Number(point.value));
+}
+
+function selectRiskHistoryWindowValues(points, timeframe) {
+  const rows = Array.isArray(points)
+    ? points
+        .map((point) => ({
+          timestampMs: parseTimestampMs(point?.timestamp),
+          score: Number(point?.score)
+        }))
+        .filter(
+          (point) => Number.isFinite(point.timestampMs) && Number.isFinite(point.score)
+        )
+        .sort((a, b) => a.timestampMs - b.timestampMs)
+    : [];
+
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const windowMs =
+    TOKEN_CHART_TIMEFRAME_WINDOW_MS[timeframe] || TOKEN_CHART_TIMEFRAME_WINDOW_MS["24h"];
+  const endTs = Number(rows[rows.length - 1].timestampMs || Date.now());
+  const startTs = endTs - windowMs;
+  let firstInsideIndex = rows.findIndex((point) => Number(point.timestampMs) >= startTs);
+  if (firstInsideIndex === -1) {
+    firstInsideIndex = Math.max(0, rows.length - 1);
+  }
+  const sliceStart = Math.max(0, firstInsideIndex - 1);
+  const values = rows
+    .slice(sliceStart)
+    .map((point) => Math.max(0, Math.min(100, Number(point.score))));
+
+  return downsampleSeries(values, getTokenChartMaxPoints(timeframe));
+}
+
+function buildRiskTrendByMint(mint, timeframe) {
+  const normalizedMint = String(mint || "").trim();
+  if (!validateMint(normalizedMint)) {
+    throw new Error("Invalid mint.");
+  }
+  const normalizedTimeframe = normalizeTokenChartTimeframe(timeframe);
+  if (!normalizedTimeframe) {
+    throw new Error("Unsupported timeframe.");
+  }
+
+  const existing = scoreHistoryByMint.get(normalizedMint) || [];
+  const pruned = pruneHistoryPoints(existing, Date.now());
+  if (pruned !== existing) {
+    scoreHistoryByMint.set(normalizedMint, pruned);
+  }
+
+  const points = selectRiskHistoryWindowValues(pruned, normalizedTimeframe);
+  const changeRaw = computeSeriesChangePct(points);
+  const changePct = Number.isFinite(Number(changeRaw)) ? Number(changeRaw) : 0;
+
+  return {
+    mint: normalizedMint,
+    timeframe: normalizedTimeframe,
+    points,
+    changePct: Number(changePct.toFixed(2)),
+    source: "score-history",
+    generatedAt: new Date().toISOString()
+  };
+}
+
+async function fetchCoinGeckoJsonWithRetry(url, timeoutMs) {
+  const maxAttempts = 4;
+  let attempt = 0;
+  let delayMs = 300;
+  let lastError = null;
+  while (attempt < maxAttempts) {
+    try {
+      return await fetchJsonWithTimeout(url, timeoutMs);
+    } catch (error) {
+      lastError = error;
+      const message = String(error?.message || "").toLowerCase();
+      const retryable =
+        message.includes("429") ||
+        message.includes("503") ||
+        message.includes("504") ||
+        message.includes("timeout") ||
+        message.includes("aborted");
+      attempt += 1;
+      if (!retryable || attempt >= maxAttempts) {
+        break;
+      }
+      await sleep(delayMs);
+      delayMs *= 2;
+    }
+  }
+  throw lastError || new Error("Failed to fetch CoinGecko payload.");
+}
+
+async function fetchTokenChartByMint(mint, timeframe) {
+  const normalizedMint = String(mint || "").trim();
+  if (!validateMint(normalizedMint)) {
+    throw new Error("Invalid mint.");
+  }
+  const normalizedTimeframe = normalizeTokenChartTimeframe(timeframe);
+  if (!normalizedTimeframe) {
+    throw new Error("Unsupported timeframe.");
+  }
+
+  const cacheKey = `${normalizedTimeframe}:${normalizedMint}`;
+  const now = Date.now();
+  const cached = tokenChartCache.get(cacheKey);
+  const ttlMs = getTokenChartTtlMs(normalizedTimeframe);
+  if (cached && now - cached.cachedAt < ttlMs) {
+    return cached.payload;
+  }
+
+  const coinId = await resolveCoinGeckoIdByMint(normalizedMint);
+  if (!coinId) {
+    throw new Error("CoinGecko mapping not found for mint.");
+  }
+
+  const marketChartUrl = new URL(
+    `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart`
+  );
+  let points = [];
+  if (normalizedTimeframe === "7d") {
+    marketChartUrl.searchParams.set("vs_currency", "usd");
+    marketChartUrl.searchParams.set("days", "7");
+    marketChartUrl.searchParams.set("interval", "hourly");
+    const payload = await fetchCoinGeckoJsonWithRetry(marketChartUrl.toString(), TOKEN_CHART_TIMEOUT_MS);
+    points = normalizeMarketChartPricePoints(payload?.prices);
+  } else {
+    const rangeUrl = new URL(
+      `${COINGECKO_API_BASE}/coins/${encodeURIComponent(coinId)}/market_chart/range`
+    );
+    const nowSec = Math.floor(Date.now() / 1000);
+    const windowMs = TOKEN_CHART_TIMEFRAME_WINDOW_MS[normalizedTimeframe] || TOKEN_CHART_TIMEFRAME_WINDOW_MS["24h"];
+    const fromSec = Math.max(0, Math.floor((Date.now() - windowMs) / 1000));
+    rangeUrl.searchParams.set("vs_currency", "usd");
+    rangeUrl.searchParams.set("from", String(fromSec));
+    rangeUrl.searchParams.set("to", String(nowSec));
+    const payload = await fetchCoinGeckoJsonWithRetry(rangeUrl.toString(), TOKEN_CHART_TIMEOUT_MS);
+    points = normalizeMarketChartPricePoints(payload?.prices);
+
+    // Fallback if range endpoint returns too few points for short windows.
+    if (points.length < 2) {
+      marketChartUrl.searchParams.set("vs_currency", "usd");
+      marketChartUrl.searchParams.set("days", "1");
+      const dayPayload = await fetchCoinGeckoJsonWithRetry(
+        marketChartUrl.toString(),
+        TOKEN_CHART_TIMEOUT_MS
+      );
+      const dayPoints = normalizeMarketChartPricePoints(dayPayload?.prices);
+      const dayValues = selectChartWindowValues(dayPoints, normalizedTimeframe);
+      points = dayValues.map((value, index) => ({
+        timestamp: index,
+        value
+      }));
+    }
+  }
+
+  if (points.length < 2) {
+    throw new Error("CoinGecko returned insufficient chart points.");
+  }
+
+  const rawValues =
+    normalizedTimeframe === "7d"
+      ? points.map((point) => Number(point.value))
+      : points.map((point) => Number(point.value));
+  const downsampled = downsampleSeries(rawValues, getTokenChartMaxPoints(normalizedTimeframe));
+  if (downsampled.length < 2) {
+    throw new Error("Insufficient chart values after normalization.");
+  }
+
+  const chart = {
+    mint: normalizedMint,
+    timeframe: normalizedTimeframe,
+    points: downsampled,
+    changePct: computeSeriesChangePct(downsampled),
+    source: "coingecko-market-chart",
+    generatedAt: new Date().toISOString()
+  };
+
+  tokenChartCache.set(cacheKey, {
+    payload: chart,
+    cachedAt: Date.now()
+  });
+  while (tokenChartCache.size > 2500) {
+    const oldestKey = tokenChartCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    tokenChartCache.delete(oldestKey);
+  }
+
+  return chart;
 }
 
 async function fetchMintSignals(mint) {
@@ -2413,7 +2820,8 @@ const server = http.createServer((req, res) => {
   if (req.method === "GET" && pathname === "/v1/top-tokens") {
     const requestedLimit = parsedUrl.searchParams.get("limit");
     const limit = normalizeTopTokensLimit(requestedLimit);
-    fetchTopSolanaTokens(limit)
+    const forceRefresh = parsedUrl.searchParams.get("refresh") === "1";
+    fetchTopSolanaTokens(limit, { forceRefresh })
       .then((payload) => {
         sendJson(res, 200, payload);
       })
@@ -2423,6 +2831,114 @@ const server = http.createServer((req, res) => {
           details: error.message
         });
       });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/v1/token-charts") {
+    const timeframe = normalizeTokenChartTimeframe(parsedUrl.searchParams.get("timeframe"));
+    if (!timeframe) {
+      sendJson(res, 400, {
+        error: "Invalid timeframe",
+        hint: "Use one of: 1h, 4h, 1d, 24h, 7d"
+      });
+      return;
+    }
+
+    const mints = normalizeTokenChartMints(parsedUrl);
+    if (mints.length === 0) {
+      sendJson(res, 400, {
+        error: "No valid mints provided",
+        hint: "Use ?mints=<mint1,mint2,...> or repeated ?mint=<mint> parameters"
+      });
+      return;
+    }
+
+    (async () => {
+      const charts = [];
+      for (const mint of mints) {
+        try {
+          charts.push(await fetchTokenChartByMint(mint, timeframe));
+        } catch (error) {
+          charts.push({
+            mint,
+            timeframe,
+            points: [],
+            changePct: null,
+            source: "coingecko-market-chart",
+            error: String(error?.message || "Failed to load chart"),
+            generatedAt: new Date().toISOString()
+          });
+        }
+        await sleep(320);
+      }
+      return charts;
+    })()
+      .then((charts) => {
+        const warnings = charts
+          .filter((item) => typeof item?.error === "string" && item.error)
+          .map((item) => `${item.mint}: ${item.error}`);
+        sendJson(res, 200, {
+          timeframe,
+          charts,
+          source: "coingecko-market-chart",
+          warnings,
+          generatedAt: new Date().toISOString()
+        });
+      })
+      .catch((error) => {
+        sendJson(res, 500, {
+          error: "Failed to load token charts",
+          details: error.message
+        });
+      });
+    return;
+  }
+
+  if (req.method === "GET" && pathname === "/v1/risk-trends") {
+    const timeframe = normalizeTokenChartTimeframe(parsedUrl.searchParams.get("timeframe"));
+    if (!timeframe) {
+      sendJson(res, 400, {
+        error: "Invalid timeframe",
+        hint: "Use one of: 1h, 4h, 1d, 24h, 7d"
+      });
+      return;
+    }
+
+    const mints = normalizeTokenChartMints(parsedUrl);
+    if (mints.length === 0) {
+      sendJson(res, 400, {
+        error: "No valid mints provided",
+        hint: "Use ?mints=<mint1,mint2,...> or repeated ?mint=<mint> parameters"
+      });
+      return;
+    }
+
+    const charts = mints.map((mint) => {
+      try {
+        return buildRiskTrendByMint(mint, timeframe);
+      } catch (error) {
+        return {
+          mint,
+          timeframe,
+          points: [],
+          changePct: 0,
+          source: "score-history",
+          error: String(error?.message || "Failed to build risk trend"),
+          generatedAt: new Date().toISOString()
+        };
+      }
+    });
+    const warnings = charts
+      .filter((item) => typeof item?.error === "string" && item.error)
+      .map((item) => `${item.mint}: ${item.error}`);
+
+    sendJson(res, 200, {
+      timeframe,
+      charts,
+      source: "score-history",
+      warnings,
+      generatedAt: new Date().toISOString()
+    });
     return;
   }
 

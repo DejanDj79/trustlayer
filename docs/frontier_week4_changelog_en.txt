@@ -1,0 +1,34 @@
+TrustLayer - Week 4 Changelog
+Date range: Apr 14, 2026 - Apr 21, 2026 (accelerated checkpoint)
+
+1) Top table data transparency
+- Added explicit sync controls and visibility:
+  - `Sync now` action
+  - last sync timestamp
+  - cache age / ttl hint
+- Clarified that `Price 24h` and `MCap` come from CoinGecko market feed.
+- Added row-level "Open on CoinGecko" verification flow.
+
+2) Chart behavior stabilization
+- Simplified trend timeframe options to:
+  - `24h`
+  - `7d`
+- Improved fallback behavior when risk history is sparse.
+- Reduced misleading flat-line behavior by using adaptive fallback rendering.
+
+3) Loading UX hardening
+- Added initial skeleton state for Top Tokens table.
+- Added initial skeleton state for Market Pulse section below table.
+- Ensured first-load presentation feels intentional and stable.
+
+4) Market Pulse robustness
+- Kept gainers/losers membership stable from top table sample.
+- Improved trend-to-display consistency for risk delta rendering.
+- Preserved interaction continuity with analyzer selection.
+
+5) Week 4 checkpoint outcome
+- Week 4 branch is now suitable for recording checkpoint demo/video.
+- Week 5 will continue on new branch with feature depth:
+  - Risk Change Leaderboard
+  - Data Quality / Reliability panel
+  - Liquidity vs Concentration view

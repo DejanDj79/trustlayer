@@ -18,7 +18,11 @@ interface TopTokensTableProps {
   source: string;
   fallbackMode: boolean;
   errorMessage: string | null;
+  generatedAt: string | null;
+  cacheAgeMs: number | null;
+  cacheTtlMs: number | null;
   selectedMint: string | null;
+  onRefreshNow: () => void;
   onAnalyzeToken: (mint: string) => void;
   watchlistMints: Set<string>;
   onToggleWatchlist: (token: TopToken) => void;
@@ -88,6 +92,44 @@ function RiskBadge({ risk }: { risk: TokenRiskState | undefined }) {
   return <span className={`text-sm font-semibold ${colorClass}`}>{scoreText}</span>;
 }
 
+function coinGeckoUrlForToken(token: TopToken): string {
+  const coinId = String(token.coingeckoId || "").trim();
+  if (coinId) {
+    return `https://www.coingecko.com/en/coins/${encodeURIComponent(coinId)}`;
+  }
+  const fallbackQuery = String(token.mint || token.symbol || token.name || "").trim();
+  return `https://www.coingecko.com/en/search?query=${encodeURIComponent(fallbackQuery)}`;
+}
+
+function formatRelativeCacheAge(ageMs: number | null | undefined): string {
+  const numeric = Number(ageMs);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return "n/a";
+  }
+  const seconds = Math.round(numeric / 1000);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.round(seconds / 60);
+  return `${minutes}m`;
+}
+
+function formatSyncTime(value: string | null | undefined): string {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "n/a";
+  }
+  const parsed = new Date(raw);
+  if (!Number.isFinite(parsed.getTime())) {
+    return "n/a";
+  }
+  return parsed.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 export function TopTokensTable(props: TopTokensTableProps) {
   const {
     tokens,
@@ -97,7 +139,11 @@ export function TopTokensTable(props: TopTokensTableProps) {
     source,
     fallbackMode,
     errorMessage,
+    generatedAt,
+    cacheAgeMs,
+    cacheTtlMs,
     selectedMint,
+    onRefreshNow,
     onAnalyzeToken,
     watchlistMints,
     onToggleWatchlist
@@ -140,6 +186,16 @@ export function TopTokensTable(props: TopTokensTableProps) {
             Source: {source || "unknown"}
             {fallbackMode ? " (fallback mode)" : ""}
           </p>
+          <div className="mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={onRefreshNow}
+              disabled={isLoading}
+              className="border border-tl-border bg-black px-2 py-1 text-[11px] text-zinc-300 transition-colors duration-150 hover:bg-[#101010] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Sync now
+            </button>
+          </div>
           {isLoading ? (
             <p className="mt-1 inline-flex items-center gap-2 text-sm text-tl-muted">
               <LoadingSpinner />
@@ -149,7 +205,9 @@ export function TopTokensTable(props: TopTokensTableProps) {
             <p className="mt-1 text-xs text-tl-muted">Auto-refresh every 5 minutes</p>
           )}
           <p className="mt-1 text-xs text-tl-muted">
-            Legend: <span className="text-green-300">Green</span> low risk · <span className="text-amber-300">Yellow</span> medium risk · <span className="text-red-500">Red</span> high risk
+            Last sync: {formatSyncTime(generatedAt)} · cache age: {formatRelativeCacheAge(cacheAgeMs)}
+            {" / "}
+            {formatRelativeCacheAge(cacheTtlMs)}
           </p>
         </div>
       </div>
@@ -165,8 +223,8 @@ export function TopTokensTable(props: TopTokensTableProps) {
               <th className="px-2 py-2">#</th>
               <th className="px-2 py-2">Token</th>
               <th className="px-2 py-2">Price</th>
-              <th className="px-2 py-2">24h</th>
-              <th className="px-2 py-2">Market Cap</th>
+              <th className="px-2 py-2">Price 24h</th>
+              <th className="px-2 py-2">MCap (Global)</th>
               <th className="px-2 py-2">Risk</th>
               <th className="px-2 py-2" />
             </tr>
@@ -240,6 +298,17 @@ export function TopTokensTable(props: TopTokensTableProps) {
                           <p className="truncate font-bold">{token.name || "Unknown"}</p>
                           <p className="truncate text-xs text-tl-muted">
                             {token.symbol || "N/A"} · {shortMint(token.mint)}
+                          </p>
+                          <p className="truncate text-xs">
+                            <a
+                              href={coinGeckoUrlForToken(token)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              className="text-sky-300 hover:underline"
+                            >
+                              Open on CoinGecko
+                            </a>
                           </p>
                         </div>
                       </div>

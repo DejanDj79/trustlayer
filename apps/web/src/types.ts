@@ -118,17 +118,63 @@ export interface TopToken {
   symbol: string;
   name: string;
   mint: string;
+  coingeckoId?: string | null;
   priceUsd: number | null;
   marketCapUsd: number | null;
   change24hPct: number | null;
+  lastUpdatedAt?: string | null;
   sparkline7d?: number[] | null;
   imageUrl?: string | null;
+}
+
+export interface TopTokensCacheMeta {
+  hit?: boolean;
+  ageMs?: number;
+  ttlMs?: number;
 }
 
 export interface TopTokensResponse {
   tokens: TopToken[];
   source?: string;
   warnings?: string[];
+  cache?: TopTokensCacheMeta;
+  generatedAt?: string;
+}
+
+export interface TokenChartItem {
+  mint: string;
+  timeframe: string;
+  points: number[];
+  changePct?: number | null;
+  source?: string;
+  error?: string;
+  generatedAt?: string;
+}
+
+export interface TokenChartsResponse {
+  timeframe?: string;
+  charts: TokenChartItem[];
+  source?: string;
+  warnings?: string[];
+  generatedAt?: string;
+}
+
+export interface RiskTrendItem {
+  mint: string;
+  timeframe: string;
+  points: number[];
+  changePct?: number | null;
+  source?: string;
+  error?: string;
+  generatedAt?: string;
+}
+
+export interface RiskTrendsResponse {
+  timeframe?: string;
+  charts: RiskTrendItem[];
+  source?: string;
+  warnings?: string[];
+  generatedAt?: string;
 }
 
 export interface TokenProfileResponse {

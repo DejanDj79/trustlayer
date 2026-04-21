@@ -1,174 +1,152 @@
 TRUSTLAYER - WEEK 5 DAY-BY-DAY PLAN
-Period: 04 May 2026 - 11 May 2026
+Period: 22 Apr 2026 - 11 May 2026
 
-STATUS SNAPSHOT (as of 05 Apr 2026)
-- [TODO] Final feature freeze i submission-only rezim.
-- [TODO] Demo video recording i pitch dry-run ciklus.
-- [TODO] Final submission forma + link QA + backup demo scenario.
-- [TODO] Post-submission follow-up i accelerator interview prep.
+STATUS SNAPSHOT (prepared on 21 Apr 2026)
+- [READY] Week 4 checkpoint locked for recording on branch `week4-ui-wip`.
+- [NEXT] Week 5 development continues on a new branch after checkpoint push.
+- [FOCUS] Add high-impact, judge-visible product depth without breaking stability.
 
 Goal of week 5:
-- Submission package vrhunskog kvaliteta + zero-drama predaja.
+- Add final product depth (risk movement intelligence + data quality transparency),
+  then close with submission-ready assets.
 
 --------------------------------------------------
-DAY 29 (04 May) - FEATURE FREEZE
---------------------------------------------------
-
-Objectives:
-- Zaustaviti scope creep i zakljucati finalni build.
-
-Tasks:
-1. Proglasiti feature freeze.
-2. Otvoreni taskovi:
-   - samo bugfix
-   - copy/content
-   - demo prep
-3. Zakljuciti backlog i jasno obeleziti post-hackathon ideje.
-4. Potvrditi finalnu verziju API contract-a.
-
-Definition of done:
-- Nema novih feature taskova.
-
---------------------------------------------------
-DAY 30 (05 May) - README + DOCS FINAL
+DAY 29 (22 Apr) - Week 5 kickoff and branch setup
 --------------------------------------------------
 
 Objectives:
-- Repo da bude samodovoljan za sudiju i investitora.
+- Start Week 5 on clean branch state.
 
 Tasks:
-1. Final README:
-   - problem
-   - solution
-   - architecture
-   - run locally
-   - API reference
-2. Dodati `SCORING_METHOD.md`.
-3. Dodati `KNOWN_LIMITATIONS.md`.
-4. Proveriti da nema tajni u kodu i commit istoriji.
+1. Create Week 5 branch from Week 4 checkpoint.
+2. Freeze Week 4 video/demo assets.
+3. Confirm Week 5 acceptance criteria and no-scope-creep rules.
 
 Definition of done:
-- Treca osoba moze da razume projekat bez dodatnog objasnjenja.
+- Week 5 branch active and Week 4 checkpoint safely preserved.
 
 --------------------------------------------------
-DAY 31 (06 May) - DEMO SCRIPT + STORY
+DAY 30 (23 Apr) - Risk Change Leaderboard
 --------------------------------------------------
 
 Objectives:
-- Napraviti najjaci 3-min narativ.
+- Show risk movement as a first-class signal.
 
 Tasks:
-1. Napisati pitch skriptu:
-   - Hook (problem)
-   - Product demo
-   - Why now/why Solana
-   - Business model
-2. Definisati tacne demo klikove i mint primere.
-3. Pripremiti backup plan ako live internet zakaze.
-4. Uvezbati 3x sa tajmerom.
+1. Build leaderboard panel:
+   - score now
+   - score 24h ago
+   - delta
+   - confidence
+2. Sort by absolute delta with clear severity styling.
+3. Add drill-down click to analyze token.
 
 Definition of done:
-- Stabilan i jasan demo script ispod 3 min.
+- Users can identify strongest positive/negative risk shifts instantly.
 
 --------------------------------------------------
-DAY 32 (07 May) - VIDEO RECORDING
+DAY 31 (24 Apr) - Data Quality / Reliability Panel
 --------------------------------------------------
 
 Objectives:
-- Snimiti final demo video za submission.
+- Make data trust level explicit.
 
 Tasks:
-1. Snimiti 2-3 take-a.
-2. Izabrati najbolji take po jasnoci i tempu.
-3. Dodati minimalan edit (title/slides ako treba).
-4. Export u trazenom formatu.
+1. Add confidence distribution block:
+   - high / medium / low counts
+2. Add fallback usage ratio.
+3. Add compact RPC health summary card.
 
 Definition of done:
-- Finalni video spreman za upload.
+- Reliability is visible at a glance, not hidden in warnings.
 
 --------------------------------------------------
-DAY 33 (08 May) - SUBMISSION FORM DRAFT
+DAY 32 (25 Apr) - Liquidity vs Concentration View (core)
 --------------------------------------------------
 
 Objectives:
-- Popuniti formu ranije, ne poslednji dan.
+- Add one high-signal map for fast risk triage.
 
 Tasks:
-1. Popuniti draft:
-   - opis projekta
-   - tech stack
-   - impact
-   - links (repo/demo/video)
-2. Proveriti sve linkove i dostupnost.
-3. Uskladiti submission copy sa README i videom.
-4. Napraviti final QA check listu.
+1. Scatter/quadrant style view:
+   - x-axis: liquidity confidence
+   - y-axis: holder concentration
+2. Color points by risk status.
+3. Click point -> open analyzer.
 
 Definition of done:
-- Submission draft je 90-100% kompletan.
+- High-risk clusters are visually obvious.
 
 --------------------------------------------------
-DAY 34 (09 May) - FULL DRY RUN
+DAY 33 (26 Apr) - Liquidity/Concentration polish + fallback
 --------------------------------------------------
 
 Objectives:
-- Simulirati dan sudjenja.
+- Make new panel stable under partial data.
 
 Tasks:
-1. Pokrenuti projekat od nule na cistoj masini (ili clean env).
-2. Proci ceo demo script bez prekida.
-3. Proci checklist:
-   - repo
-   - live demo
-   - video
-   - submission text
-4. Ispraviti poslednje kriticne sitnice.
+1. Handle missing fields with explicit placeholder states.
+2. Add tooltip and legend for interpretation.
+3. Verify responsiveness in right/left layout constraints.
 
 Definition of done:
-- "Judge simulation" prolazi glatko.
+- Panel remains useful even when some tokens have incomplete signals.
 
 --------------------------------------------------
-DAY 35 (10 May) - FINAL FIX WINDOW
+DAY 34 (27 Apr) - Narrative tags (stretch)
 --------------------------------------------------
 
 Objectives:
-- Zatvoriti samo najvaznije sitnice.
+- Improve token context for non-technical users.
 
 Tasks:
-1. Minor bugfix pass.
-2. Copy polish u UI i docs.
-3. Provera svih env podeavanja.
-4. Zakljucati release tag.
+1. Add optional tags:
+   - meme, DeFi, infra, AI, stablecoin
+2. Show tag chips in table/detail contexts.
+3. Keep this behind low-risk implementation scope.
 
 Definition of done:
-- Final build je stabilan i spreman za slanje.
+- Basic categorization is available without hurting core UX.
 
 --------------------------------------------------
-DAY 36 (11 May) - SUBMIT DAY
+DAY 35 (28 Apr) - QA hard pass and bug burndown
 --------------------------------------------------
 
 Objectives:
-- Bezbedno i na vreme predati projekat.
+- Stabilize Week 5 additions.
 
 Tasks:
-1. Finalno pregledati submission polja.
-2. Potvrditi:
-   - GitHub link
-   - live demo link
-   - video link
-3. Poslati submission pre isteka roka.
-4. Sacuvati potvrdu prijave.
+1. Run full QA checklist for table, pulse, watchlist, compare, new panels.
+2. Fix visual overflow/edge states.
+3. Re-run smoke tests and typecheck/build.
 
 Definition of done:
-- Projekat uspesno predat.
+- No critical or major UX/API issues remain.
+
+--------------------------------------------------
+DAY 36+ (29 Apr - 11 May) - Submission lock and final assets
+--------------------------------------------------
+
+Objectives:
+- Convert finished product into strong submission package.
+
+Tasks:
+1. Update README/docs/changelog for final architecture and features.
+2. Record final demo video and backup take.
+3. Validate all links, API examples, and run instructions.
+4. Submit before deadline with final QA pass.
+
+Definition of done:
+- Submission package is complete, coherent, and reproducible.
 
 --------------------------------------------------
 WEEK 5 SUCCESS CHECKLIST
 --------------------------------------------------
 
-1. Feature freeze ispostovan.
-2. Dokumentacija cista i kompletna.
-3. Demo video kvalitetan i kratak.
-4. Submission forma tacna i potpuna.
-5. Predaja obavljena pre roka.
+1. Risk Change Leaderboard shipped.
+2. Data Quality / Reliability panel shipped.
+3. Liquidity vs Concentration view shipped (or explicitly scoped fallback).
+4. Full QA pass completed on final branch.
+5. Final demo + submission assets ready and validated.
 
 If all 5 are true -> Week 5 is successful.

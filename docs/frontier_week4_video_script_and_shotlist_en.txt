@@ -1,0 +1,89 @@
+Frontier Hackathon - Week 4 Video
+Project: TrustLayer
+Format: Screen-only demo (no face camera)
+Target length: 60-75 seconds
+Checkpoint date: Apr 21, 2026
+
+==================================================
+1) Voiceover Script (Week 4 Final, Relative to Week 3)
+==================================================
+
+Hi everyone, this is our Week 4 update for TrustLayer.
+
+In Week 3 we focused on transparency and compare-mode clarity.
+In Week 4 we focused on UX stability, loading quality, and chart reliability.
+
+The first major improvement is data transparency in the Top Tokens table.
+We added a Sync Now action, visible last-sync time, and cache age, so users know
+how fresh market data is before they make decisions.
+
+The second improvement is chart stability in Market Pulse.
+We simplified timeframes to 24h and 7d and improved fallback behavior,
+so trend visuals are more consistent during real usage and demo runs.
+
+Third, we added initial skeleton loading for both the top table and the market pulse section,
+which makes first-load experience much more polished and production-like.
+
+Week 4 closes with a stable, cleaner, and more demo-safe user experience.
+Next, Week 5 will add deeper product intelligence panels and final submission polish.
+
+==================================================
+2) Shot List (Screen Recording Guide)
+==================================================
+
+Timeline guide (about 70 sec total):
+
+00:00 - 00:07
+Shot: Open app full layout.
+Action: Hold steady on table + market pulse.
+Overlay (optional): "TrustLayer - Week 4 Checkpoint"
+
+00:07 - 00:20
+Shot: Top Tokens header metadata.
+Action:
+- show `Sync now`
+- show `Last sync` and cache age line
+Capture: freshness transparency.
+
+00:20 - 00:36
+Shot: Top tokens rows.
+Action:
+- click one token
+- briefly show right panel update
+Capture: continuity and stable interaction.
+
+00:36 - 00:50
+Shot: Market Pulse chart controls.
+Action:
+- show only `24h` and `7d`
+- switch once between them
+Capture: predictable chart behavior.
+
+00:50 - 01:02
+Shot: Hard refresh page (or initial load state demo).
+Action:
+- show skeletons for top table and market pulse
+Capture: loading polish.
+
+01:02 - 01:12
+Shot: End frame.
+Overlay (optional):
+"Week 4: Stability, loading polish, and reliable trends"
+
+==================================================
+3) Recording Checklist
+==================================================
+
+- Browser zoom 100%, full-screen app window.
+- Keep one token selected before recording (for quick interaction shot).
+- Record one clean take with smooth scroll only.
+- If needed, record second take dedicated to skeleton load shot.
+
+==================================================
+4) Editing Notes
+==================================================
+
+- Keep cuts short and feature-focused.
+- Avoid long pause on static screens.
+- Export at 1080p, 30fps.
+- Keep final length between 60 and 75 seconds.

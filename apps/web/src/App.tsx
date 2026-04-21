@@ -218,6 +218,9 @@ export default function App() {
   const [topTokens, setTopTokens] = useState<TopToken[]>([]);
   const [topTokensSource, setTopTokensSource] = useState<string>("unknown");
   const [topTokensWarnings, setTopTokensWarnings] = useState<string[]>([]);
+  const [topTokensGeneratedAt, setTopTokensGeneratedAt] = useState<string | null>(null);
+  const [topTokensCacheAgeMs, setTopTokensCacheAgeMs] = useState<number | null>(null);
+  const [topTokensCacheTtlMs, setTopTokensCacheTtlMs] = useState<number | null>(null);
   const [topTokensLoading, setTopTokensLoading] = useState(false);
   const [topTokensReadyOnce, setTopTokensReadyOnce] = useState(false);
   const [topTokensError, setTopTokensError] = useState<string | null>(null);
@@ -411,18 +414,20 @@ export default function App() {
     }
   }, [fetchScoreByMint, pushWatchlistAlert, rememberTopTokenRisk, watchlistMintSet]);
 
-  const fetchTopTokens = useCallback(async () => {
+  const fetchTopTokens = useCallback(async (options?: { forceRefresh?: boolean }) => {
     if (topTokensFetchInFlightRef.current) {
       return;
     }
 
+    const forceRefresh = Boolean(options?.forceRefresh);
     topTokensFetchInFlightRef.current = true;
     const nonce = ++topTokenNonceRef.current;
     setTopTokensLoading(true);
     setTopTokensError(null);
 
     try {
-      const payload = await requestJsonWithRetry<TopTokensResponse>("/v1/top-tokens?limit=20", {
+      const endpoint = forceRefresh ? "/v1/top-tokens?limit=20&refresh=1" : "/v1/top-tokens?limit=20";
+      const payload = await requestJsonWithRetry<TopTokensResponse>(endpoint, {
         timeoutMs: TOP_TOKENS_TIMEOUT_MS,
         retries: 1,
         retryDelayMs: 400
@@ -435,6 +440,12 @@ export default function App() {
       setTopTokens(tokens);
       setTopTokensSource(String(payload.source || "unknown"));
       setTopTokensWarnings(Array.isArray(payload.warnings) ? payload.warnings : []);
+      const generatedAtRaw = String(payload.generatedAt || "").trim();
+      setTopTokensGeneratedAt(generatedAtRaw || null);
+      const cacheAgeMsRaw = Number(payload.cache?.ageMs);
+      const cacheTtlMsRaw = Number(payload.cache?.ttlMs);
+      setTopTokensCacheAgeMs(Number.isFinite(cacheAgeMsRaw) ? cacheAgeMsRaw : null);
+      setTopTokensCacheTtlMs(Number.isFinite(cacheTtlMsRaw) ? cacheTtlMsRaw : null);
 
       const nowMs = Date.now();
       const staleCutoffMs = nowMs - TOP_TOKEN_SCORE_REUSE_MS;
@@ -527,6 +538,9 @@ export default function App() {
       }
       setTopTokensError(error instanceof Error ? error.message : "Failed to load top tokens.");
       setTopTokens([]);
+      setTopTokensGeneratedAt(null);
+      setTopTokensCacheAgeMs(null);
+      setTopTokensCacheTtlMs(null);
       setTopTokenRisks({});
     } finally {
       topTokensFetchInFlightRef.current = false;
@@ -1565,8 +1579,14 @@ export default function App() {
                 source={topTokensSource}
                 fallbackMode={topTokensWarnings.length > 0}
                 errorMessage={topTokensError}
+                generatedAt={topTokensGeneratedAt}
+                cacheAgeMs={topTokensCacheAgeMs}
+                cacheTtlMs={topTokensCacheTtlMs}
                 selectedMint={selectedMint}
                 watchlistMints={watchlistMintSet}
+                onRefreshNow={() => {
+                  void fetchTopTokens({ forceRefresh: true });
+                }}
                 onAnalyzeToken={(tokenMint) => {
                   setSelectedMint(tokenMint);
                   setMint(tokenMint);
@@ -1578,6 +1598,7 @@ export default function App() {
               <TableInsightsPanel
                 tokens={topTokens}
                 risks={topTokenRisks}
+                showInitialSkeleton={!topTokensReadyOnce && topTokensLoading}
                 source={topTokensSource}
                 fallbackMode={topTokensWarnings.length > 0}
                 selectedMint={selectedMint}
