@@ -1,0 +1,168 @@
+TrustLayer - Frontier Final Submission Checklist
+Last update: Apr 21, 2026
+
+Owner:
+- Team / solo builder: Agar (solo)
+- Submission deadline (local time): __________________________
+
+==================================================
+A) Build & QA Gate (must pass first)
+==================================================
+
+1. Web typecheck
+- Command: `npm --workspace apps/web run typecheck`
+- Result: [x] PASS
+
+2. Web production build
+- Command: `npm --workspace apps/web run build`
+- Result: [x] PASS
+
+3. API flow smoke
+- Command: `npm run qa:week3`
+- Result: [x] PASS
+
+4. Basic API smoke
+- Command: `./scripts/smoke_api.sh`
+- Result: [x] PASS
+
+5. Week 5 manual QA sweep
+- File: `docs/frontier_week5_qa_checklist_en.txt`
+- Result: [ ] PASS (pending final manual visual sweep)
+- Notes: Automated gates passed on Apr 21, 2026 (`typecheck`, `build`, `qa:week3`, `smoke_api.sh`).
+
+Blocking rule:
+- If any item fails, fix first. Do not submit with failing core checks.
+
+==================================================
+B) Weekly Videos (checkpoint uploads)
+==================================================
+
+Week 1 update:
+- Script file: `docs/frontier_week1_video_script_and_shotlist_en.txt`
+- Recorded: [ ] Yes  [ ] No
+- Uploaded: [ ] Yes  [ ] No
+- Link: __________________________________________
+
+Week 2 update:
+- Script file: `docs/frontier_week2_video_script_and_shotlist_en.txt`
+- Recorded: [ ] Yes  [ ] No
+- Uploaded: [ ] Yes  [ ] No
+- Link: __________________________________________
+
+Week 3 update:
+- Script file: `docs/frontier_week3_video_script_and_shotlist_en.txt`
+- Recorded: [ ] Yes  [ ] No
+- Uploaded: [ ] Yes  [ ] No
+- Link: __________________________________________
+
+Week 4 update:
+- Script file: `docs/frontier_week4_video_script_and_shotlist_en.txt`
+- Recorded: [ ] Yes  [ ] No
+- Uploaded: [ ] Yes  [ ] No
+- Link: __________________________________________
+
+Week 5/final update:
+- Script file: `docs/frontier_week5_video_script_and_shotlist_en.txt`
+- Demo flow file: `docs/frontier_week5_demo_flow_90s_en.txt`
+- Recorded: [ ] Yes  [ ] No
+- Uploaded: [ ] Yes  [ ] No
+- Link: __________________________________________
+
+Recording quality checks (for each video):
+- [ ] 1080p, 30fps
+- [ ] Screen-only, no visual glitches
+- [ ] Feature narration matches what is actually visible
+- [ ] Final link opens without login restrictions
+
+==================================================
+C) Repository & Release Hygiene
+==================================================
+
+1. Branch status
+- Active branch for submission: week5-risk-intelligence
+- `git status` clean (except intentional local artifacts): [x] Yes
+
+2. Final code push
+- Latest commit hash submitted: f76987c (before checklist commit)
+- Pushed to remote: [x] Yes
+- Branch link: https://github.com/DejanDj79/trustlayer/tree/week5-risk-intelligence
+
+3. Checkpoint/tag (recommended)
+- Optional tag name (example: `week5-checkpoint` or `frontier-final`): __________________________
+- Created + pushed: [ ] Yes  [ ] Skipped
+
+4. Remove/ignore local recording artifacts
+- [x] `.mkv` or large temporary files not included in commit
+- [x] `.env` not committed
+- [ ] secrets/API keys not exposed in docs/screenshots
+
+==================================================
+D) Submission Form Payload (Colosseum)
+==================================================
+
+Project identity:
+- Project name: TrustLayer
+- Brief description (final):
+  "TrustLayer is a Solana token risk intelligence terminal that combines risk scoring,
+   movement tracking, concentration/liquidity signals, and narrative context for faster,
+   safer token discovery."
+
+Category (select from current form options):
+- Selected category: __________________________
+
+Required links (paste exact final URLs):
+- Repo URL: https://github.com/DejanDj79/trustlayer
+- Demo video URL: __________________________________________
+- Weekly update playlist/links: __________________________________________
+- Live app URL (if available): __________________________________________
+
+Technical summary to paste in form:
+- Stack:
+  - Frontend: React + TypeScript + Tailwind
+  - Backend: Node.js API (Solana + market data integrations)
+- Core features:
+  - risk score + confidence
+  - score breakdown & warnings
+  - top token watchlist table
+  - risk change leaderboard
+  - liquidity vs holder concentration map
+  - narrative tags + shared tag filtering
+  - compare mode + watchlist alerts
+
+==================================================
+E) Final Judge Demo Path (single run)
+==================================================
+
+Target: 90-120 seconds clean walkthrough.
+
+1. Open app, show top table + right panel.
+2. Use narrative filter (`All` -> one tag -> back).
+3. Show Risk Change Leaderboard and click into one token.
+4. Show Liquidity vs Concentration map and click 1-2 points.
+5. Show right detail panel: score, confidence, narrative chip, warnings.
+6. (Optional) Show compare or watchlist alert state.
+7. Close with value proposition in one sentence.
+
+Result:
+- Final demo take selected: [ ] Yes
+- Backup take selected: [ ] Yes
+
+==================================================
+F) Final Go/No-Go
+==================================================
+
+Go-live checks:
+- [ ] All QA checks passed
+- [ ] Submission links validated
+- [ ] Video links public
+- [ ] No credential leaks
+- [ ] Form fields complete and accurate
+
+Decision:
+- [ ] GO - submit now
+- [ ] NO-GO - fix blockers listed below
+
+Blockers list:
+- __________________________________________
+- __________________________________________
+- __________________________________________
