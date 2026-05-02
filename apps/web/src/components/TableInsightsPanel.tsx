@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { requestJsonWithRetry } from "../lib/api";
 import { formatNumber, riskBandFromScore } from "../lib/format";
-import type { RiskTrendsResponse, TopToken, TokenRiskState } from "../types";
+import type { RiskTrendsResponse, TokenChartsResponse, TopToken, TokenRiskState } from "../types";
 
 interface TableInsightsPanelProps {
   tokens: TopToken[];
@@ -14,8 +14,10 @@ interface TableInsightsPanelProps {
 }
 
 type ChartTimeframe = "24h" | "7d";
+type MoverChartSource = "price" | "price-api" | "risk" | "flat";
 const CHART_TIMEFRAME_OPTIONS = ["24h", "7d"] as const;
 const TOKEN_CHART_FETCH_TIMEOUT_MS = 12000;
+const PRICE_CHART_FETCH_TIMEOUT_MS = 18000;
 const TIMEFRAME_FALLBACK_CHAIN: Record<ChartTimeframe, ChartTimeframe[]> = {
   "24h": ["24h", "7d"],
   "7d": ["7d"]
@@ -132,6 +134,52 @@ function buildEstimatedRiskSeriesFromSparkline(
     return projected;
   }
   return normalizePriceSeriesToRiskBand(priceSeries, anchorScore);
+}
+
+function selectMoverChartSeries(
+  token: TopToken,
+  timeframe: ChartTimeframe,
+  riskSeries: number[],
+  apiPriceSeries: number[]
+): { points: number[]; fallbackChangePct: number | null; source: MoverChartSource } {
+  const marketSeries = pickAdaptiveSparklineWindow(token, timeframe);
+  if (marketSeries.length >= 2 && seriesRange(marketSeries) > 0) {
+    const priceChange24h = Number(token.change24hPct);
+    return {
+      points: marketSeries,
+      fallbackChangePct: Number.isFinite(priceChange24h) ? priceChange24h : null,
+      source: "price"
+    };
+  }
+
+  const normalizedApiPrice = Array.isArray(apiPriceSeries)
+    ? apiPriceSeries.map((value) => Number(value)).filter((value) => Number.isFinite(value))
+    : [];
+  if (normalizedApiPrice.length >= 2 && seriesRange(normalizedApiPrice) > 0) {
+    return {
+      points: normalizedApiPrice,
+      fallbackChangePct: computeSeriesChangePct(normalizedApiPrice),
+      source: "price-api"
+    };
+  }
+
+  const normalizedRisk = Array.isArray(riskSeries)
+    ? riskSeries.map((value) => Number(value)).filter((value) => Number.isFinite(value))
+    : [];
+  if (normalizedRisk.length >= 2) {
+    return {
+      points: normalizedRisk,
+      fallbackChangePct: computeSeriesChangePct(normalizedRisk),
+      source: "risk"
+    };
+  }
+
+  const fallbackPriceChange = Number(token.change24hPct);
+  return {
+    points: [],
+    fallbackChangePct: Number.isFinite(fallbackPriceChange) ? fallbackPriceChange : null,
+    source: "flat"
+  };
 }
 
 function computeSeriesChangePct(series: number[]): number {
@@ -256,13 +304,36 @@ function MiniPriceSparkline({
   );
 }
 
+function ChartSourceBadge({ source }: { source: MoverChartSource }) {
+  let label = "flat";
+  let className = "border-zinc-700/60 text-zinc-500";
+  if (source === "price") {
+    label = "price";
+    className = "border-sky-700/60 text-sky-300";
+  } else if (source === "price-api") {
+    label = "price api";
+    className = "border-cyan-700/60 text-cyan-300";
+  } else if (source === "risk") {
+    label = "risk fallback";
+    className = "border-amber-700/60 text-amber-300";
+  }
+
+  return (
+    <span className={`inline-flex border px-1 py-0 text-[9px] uppercase tracking-[0.06em] ${className}`}>
+      {label}
+    </span>
+  );
+}
+
 export function TableInsightsPanel(props: TableInsightsPanelProps) {
   const { tokens, risks, showInitialSkeleton = false, source, fallbackMode, selectedMint, onAnalyzeToken } = props;
   const [moverTimeframe, setMoverTimeframe] = useState<ChartTimeframe>("24h");
   const [riskTrendsByMint, setRiskTrendsByMint] = useState<
     Record<string, { points: number[]; changePct: number }>
   >({});
+  const [priceTrendsByMint, setPriceTrendsByMint] = useState<Record<string, number[]>>({});
   const chartFetchNonceRef = useRef(0);
+  const priceChartFetchNonceRef = useRef(0);
 
   const readyScores = tokens
     .map((token) => {
@@ -350,6 +421,47 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
           return;
         }
         setRiskTrendsByMint({});
+      });
+  }, [moverTimeframe, chartMintsQuery]);
+
+  useEffect(() => {
+    if (!chartMintsQuery) {
+      setPriceTrendsByMint({});
+      return;
+    }
+
+    const nonce = ++priceChartFetchNonceRef.current;
+    void requestJsonWithRetry<TokenChartsResponse>(
+      `/v1/token-charts?timeframe=${encodeURIComponent(moverTimeframe)}&mints=${encodeURIComponent(chartMintsQuery)}`,
+      {
+        timeoutMs: PRICE_CHART_FETCH_TIMEOUT_MS,
+        retries: 0,
+        retryDelayMs: 0
+      }
+    )
+      .then((payload) => {
+        if (nonce !== priceChartFetchNonceRef.current) {
+          return;
+        }
+        const charts = Array.isArray(payload?.charts) ? payload.charts : [];
+        const next: Record<string, number[]> = {};
+        for (const item of charts) {
+          const mint = String(item?.mint || "").trim();
+          if (!mint) {
+            continue;
+          }
+          const points = Array.isArray(item?.points)
+            ? item.points.map((value) => Number(value)).filter((value) => Number.isFinite(value))
+            : [];
+          next[mint] = points;
+        }
+        setPriceTrendsByMint(next);
+      })
+      .catch(() => {
+        if (nonce !== priceChartFetchNonceRef.current) {
+          return;
+        }
+        setPriceTrendsByMint({});
       });
   }, [moverTimeframe, chartMintsQuery]);
 
@@ -666,8 +778,9 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
             </div>
           </div>
           <p className="mb-3 text-xs text-amber-300">
-            `Risk Δ%` and charts represent TrustLayer risk-score movement (0-100).
-            `Price 24h %` is shown separately for market context.
+            `Risk Δ%` represents TrustLayer risk-score movement (0-100).
+            Sparkline chart shows market price trend for the selected timeframe.
+            Badge indicates chart source.
           </p>
           <div className="grid gap-3 xl:grid-cols-2">
             <article className="border border-tl-border bg-black px-2 py-2">
@@ -680,9 +793,13 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
                 <ul className="grid gap-1">
                   {gainers.map((token) => {
                     const trend = trendByMint[token.mint];
-                    const points = Array.isArray(trend?.points) ? trend.points : [];
+                    const riskPoints = Array.isArray(trend?.points) ? trend.points : [];
+                    const apiPricePoints = Array.isArray(priceTrendsByMint[token.mint])
+                      ? priceTrendsByMint[token.mint]
+                      : [];
                     const changePct = Number.isFinite(Number(trend?.changePct)) ? Number(trend?.changePct) : 0;
                     const change = Number(changePct || 0);
+                    const chart = selectMoverChartSeries(token, moverTimeframe, riskPoints, apiPricePoints);
                     const isActive = selectedMint === token.mint;
                     const price24h = Number(token.change24hPct);
                     const riskToneClass = change >= 0 ? "text-green-400" : "text-red-400";
@@ -720,7 +837,13 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
                             </span>
                           </span>
                           <span className="justify-self-end">
-                            <MiniPriceSparkline prices={points} fallbackChangePct={change} />
+                            <span className="flex flex-col items-end gap-0.5">
+                              <MiniPriceSparkline
+                                prices={chart.points}
+                                fallbackChangePct={chart.fallbackChangePct}
+                              />
+                              <ChartSourceBadge source={chart.source} />
+                            </span>
                           </span>
                         </button>
                       </li>
@@ -740,9 +863,13 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
                 <ul className="grid gap-1">
                   {losers.map((token) => {
                     const trend = trendByMint[token.mint];
-                    const points = Array.isArray(trend?.points) ? trend.points : [];
+                    const riskPoints = Array.isArray(trend?.points) ? trend.points : [];
+                    const apiPricePoints = Array.isArray(priceTrendsByMint[token.mint])
+                      ? priceTrendsByMint[token.mint]
+                      : [];
                     const changePct = Number.isFinite(Number(trend?.changePct)) ? Number(trend?.changePct) : 0;
                     const change = Number(changePct || 0);
+                    const chart = selectMoverChartSeries(token, moverTimeframe, riskPoints, apiPricePoints);
                     const isActive = selectedMint === token.mint;
                     const price24h = Number(token.change24hPct);
                     const riskToneClass = change >= 0 ? "text-green-400" : "text-red-400";
@@ -780,7 +907,13 @@ export function TableInsightsPanel(props: TableInsightsPanelProps) {
                             </span>
                           </span>
                           <span className="justify-self-end">
-                            <MiniPriceSparkline prices={points} fallbackChangePct={change} />
+                            <span className="flex flex-col items-end gap-0.5">
+                              <MiniPriceSparkline
+                                prices={chart.points}
+                                fallbackChangePct={chart.fallbackChangePct}
+                              />
+                              <ChartSourceBadge source={chart.source} />
+                            </span>
                           </span>
                         </button>
                       </li>

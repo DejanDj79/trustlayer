@@ -4,12 +4,14 @@ interface HeaderProps {
 }
 
 export function Header({ onOpenMethodology, apiHealthHref }: HeaderProps) {
+  const logoSrc = `${import.meta.env.BASE_URL}stl.svg`;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-tl-border bg-black">
       <div className="mx-auto flex w-full max-w-[1640px] items-center justify-between gap-4 px-5 py-2">
         <div className="flex items-center gap-3">
           <img
-            src="/stl.svg"
+            src={logoSrc}
             alt="TrustLayer logo"
             className="h-10 w-10 object-contain"
             loading="eager"
