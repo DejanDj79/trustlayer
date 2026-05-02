@@ -1,0 +1,68 @@
+TrustLayer - Product Demo Video Script + Shot List (90 seconds)
+
+Format:
+- Voiceover: what you say
+- Screen: what you record
+
+00:00-00:08 | Intro
+Voiceover:
+"This is TrustLayer, a real-time Solana token risk intelligence app."
+Screen:
+- Start on homepage with full layout visible (top tokens table + analyzer + right panel).
+
+00:08-00:16 | Header Options
+Voiceover:
+"In the header, Methodology explains how scores are calculated, and API opens live health status for transparency."
+Screen:
+- Move cursor to header buttons.
+- Click Methodology, keep it open for 2 seconds, then close.
+- Click API to open /health in a new tab, show JSON briefly, then return to app tab.
+
+00:16-00:28 | Top Tokens Overview
+Voiceover:
+"On the left, we track top Solana tokens with live market context and risk indicators."
+Screen:
+- Slowly move through Top Tokens table.
+- Hover 2-3 rows to show row highlight behavior.
+
+00:28-00:44 | Instant Token Analysis
+Voiceover:
+"You can analyze by token name or mint address. TrustLayer returns an explainable risk score with confidence."
+Screen:
+- In analyzer input, type a token name and select from suggestions.
+- Let auto-analysis run and wait for right panel result.
+
+00:44-00:58 | Explainability
+Voiceover:
+"Each result shows why the score was assigned: holder concentration, authority controls, liquidity, activity, metadata, and RPC diagnostics."
+Screen:
+- Keep right panel in focus.
+- Scroll just enough to show risk breakdown, confidence, and warnings.
+
+00:58-01:10 | Watchlist + Alerts
+Voiceover:
+"Users can add tokens to a watchlist, set risk-change thresholds, and receive alert updates when conditions shift."
+Screen:
+- Click favorite star for current token.
+- Open Watchlist collapse.
+- Change threshold and press Check Now.
+
+01:10-01:22 | Recent Alerts + Compare
+Voiceover:
+"Recent Alerts gives a quick event feed, while Compare helps evaluate two tokens side by side."
+Screen:
+- Open Recent Alerts collapse briefly.
+- Open Compare collapse and show Token A vs Token B summary.
+
+01:22-01:30 | Close
+Voiceover:
+"TrustLayer helps traders make faster, safer token decisions with transparent risk context on Solana."
+Screen:
+- Return to top of right panel.
+- Hold steady on a clean final frame (logo/header + selected token result).
+
+Recording Notes:
+- Record at 1080p, 30fps.
+- Keep cursor movement slow and intentional.
+- Pause one second after each click.
+- Use one clean take first, then only re-record sections if needed.
