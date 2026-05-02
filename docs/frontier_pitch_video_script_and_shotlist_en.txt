@@ -4,15 +4,22 @@ Format:
 - Voiceover = what you say
 - Screen = what you record on screen at that moment
 
-00:00-00:20 | Problem
+00:00-00:15 | Problem
 Voiceover:
 "Solana traders move fast, but trust signals are fragmented across tools. Non-technical users can't reliably evaluate token risk in time."
 Screen:
 - Open TrustLayer home page.
-- Slow scroll over Top Tokens table and right analysis panel.
-- Hover 2-3 rows to show data density and speed context.
+- Show the full interface: header, analyzer, top tokens table, and right analysis panel.
 
-00:20-00:45 | Solution
+00:15-00:27 | Header + Trust Cues
+Voiceover:
+"In the header, Methodology explains exactly how we calculate risk, and API exposes live backend health for transparency."
+Screen:
+- Move cursor to header buttons.
+- Click Methodology and keep it open for 2 seconds.
+- Click API and briefly show /health JSON in a new tab, then return to app tab.
+
+00:27-00:48 | Solution
 Voiceover:
 "We built TrustLayer: an explainable risk intelligence platform for Solana tokens. It converts on-chain and market signals into a clear score, confidence level, and reasoned warnings."
 Screen:
@@ -20,7 +27,7 @@ Screen:
 - Show right panel loading and final score card.
 - Pause on Risk %, Confidence, and Warnings section.
 
-00:45-01:10 | Product
+00:48-01:13 | Product
 Voiceover:
 "Users can analyze any token, monitor a personalized watchlist, set threshold-based alerts, review score history, and compare tokens side by side."
 Screen:
@@ -30,7 +37,7 @@ Screen:
 - Open Recent Alerts collapse.
 - Open Compare collapse and show Token A vs Token B.
 
-01:10-01:30 | Why Now
+01:13-01:33 | Why Now
 Voiceover:
 "Token velocity on Solana is high, and retail users need real-time risk context before entering positions. TrustLayer reduces avoidable mistakes with faster, clearer decisions."
 Screen:
@@ -38,7 +45,7 @@ Screen:
 - Show Market Pulse / leaderboard / insights area below table.
 - Briefly highlight auto-refresh text.
 
-01:30-01:50 | Tech + Differentiation
+01:33-01:53 | Tech + Differentiation
 Voiceover:
 "TrustLayer integrates Solana RPC plus market data sources, with fallback handling and transparent diagnostics. Our edge is explainability, usability, and live monitoring in one workflow."
 Screen:
@@ -46,7 +53,7 @@ Screen:
 - Show history chart area and risk breakdown blocks.
 - Show one token where data source or warning is visible.
 
-01:50-02:00 | Closing
+01:53-02:00 | Closing
 Voiceover:
 "We're building TrustLayer for traders, communities, and small teams who need practical risk clarity every day on Solana."
 Screen:
@@ -57,4 +64,4 @@ Quick Recording Tips:
 - Record in 1080p, 30fps.
 - Keep cursor movement slow and intentional.
 - Pause 1 second after each major interaction.
-- Avoid long typing delays: pre-copy mint addresses before recording.
+- Avoid long typing delays: pre-copy mint addresses.
