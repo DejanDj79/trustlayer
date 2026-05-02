@@ -4,59 +4,64 @@ Format:
 - Voiceover = what you say
 - Screen = what you record on screen at that moment
 
-00:00-00:15 | Problem
+00:00-00:12 | Product Opening
 Voiceover:
-"Solana traders move fast, but trust signals are fragmented across tools. Non-technical users can't reliably evaluate token risk in time."
+"TrustLayer is a real-time risk intelligence platform for Solana tokens, built to help users understand token risk before they trade."
 Screen:
 - Open TrustLayer home page.
 - Show the full interface: header, analyzer, top tokens table, and right analysis panel.
 
-00:15-00:27 | Header + Trust Cues
+00:12-00:22 | Trust Cues
 Voiceover:
-"In the header, Methodology explains exactly how we calculate risk, and API exposes live backend health for transparency."
+"The header includes Methodology for scoring transparency and API health for live backend visibility."
 Screen:
 - Move cursor to header buttons.
-- Click Methodology and keep it open for 2 seconds.
-- Click API and briefly show /health JSON in a new tab, then return to app tab.
+- Open Methodology briefly, then close it.
+- Open API health briefly, then return to the app.
 
-00:27-00:48 | Solution
+00:22-00:40 | Problem + Why Now
 Voiceover:
-"We built TrustLayer: an explainable risk intelligence platform for Solana tokens. It converts on-chain and market signals into a clear score, confidence level, and reasoned warnings."
+"Solana token markets move extremely fast, but key trust signals are still scattered across scanners, DEX pages, and RPC data. Users need clear risk context at the moment they are deciding."
 Screen:
-- Click one token from Top Tokens table.
-- Show right panel loading and final score card.
-- Pause on Risk %, Confidence, and Warnings section.
+- Slowly move through the Top Tokens table.
+- Hover 2-3 rows to show market data and risk values together.
+- Keep the analyzer and right panel visible.
 
-00:48-01:13 | Product
+00:40-01:02 | Solution in Action
 Voiceover:
-"Users can analyze any token, monitor a personalized watchlist, set threshold-based alerts, review score history, and compare tokens side by side."
+"TrustLayer turns on-chain and market signals into a single explainable score, confidence level, and clear warnings."
 Screen:
-- In analyzer input, type token name or mint and run Analyze.
-- Click star/favorite to add token to Watchlist.
-- Open Watchlist collapse, show threshold controls and Check Now.
-- Open Recent Alerts collapse.
-- Open Compare collapse and show Token A vs Token B.
+- Click one token from the Top Tokens table.
+- Show the right panel loading and final score card.
+- Pause on Risk %, Confidence, and Warnings.
 
-01:13-01:33 | Why Now
+01:02-01:24 | Product Workflow
 Voiceover:
-"Token velocity on Solana is high, and retail users need real-time risk context before entering positions. TrustLayer reduces avoidable mistakes with faster, clearer decisions."
+"Users can search by token name or mint, monitor a watchlist, set alert thresholds, review recent alerts, and compare tokens side by side."
 Screen:
-- Return to Top Tokens list and quickly switch between 2-3 tokens.
-- Show Market Pulse / leaderboard / insights area below table.
-- Open the Liquidity vs Holder Concentration map and hover a few points.
-- Briefly highlight auto-refresh text.
+- Use the analyzer input with a token name or mint.
+- Add the selected token to Watchlist.
+- Open Watchlist, Recent Alerts, and Compare briefly.
 
-01:33-01:53 | Tech + Differentiation
+01:24-01:44 | Market Intelligence
 Voiceover:
-"TrustLayer integrates Solana RPC plus market data sources, with fallback handling and transparent diagnostics. Our edge is explainability, usability, and live monitoring in one workflow, including visual risk mapping with Liquidity vs Holder Concentration."
+"Below the table, Market Pulse, leaderboards, and the Liquidity vs Holder Concentration map help users understand broader market structure, not just one token at a time."
+Screen:
+- Scroll to Market Pulse and leaderboard.
+- Open the Liquidity vs Holder Concentration map.
+- Hover a few points on the map.
+
+01:44-01:54 | Differentiation
+Voiceover:
+"Our edge is explainability, reliability, and usability: Solana RPC data, market integrations, fallbacks, diagnostics, and monitoring in one workflow."
 Screen:
 - In right panel, scroll to RPC diagnostics / warnings.
 - Show history chart area and risk breakdown blocks.
 - Show one token where data source or warning is visible.
 
-01:53-02:00 | Closing
+01:54-02:00 | Closing
 Voiceover:
-"We're building TrustLayer for traders, communities, and small teams who need practical risk clarity every day on Solana."
+"TrustLayer is built for traders, communities, and small teams that need practical risk clarity every day on Solana."
 Screen:
 - Return to top of page.
 - Keep app static on clean hero/header + analyzer + table for final 5-7 seconds.
