@@ -18,14 +18,16 @@ Screen:
 - Click Methodology, keep it open for 2 seconds, then close.
 - Click API to open /health in a new tab, show JSON briefly, then return to app tab.
 
-00:18-00:30 | Top Tokens Overview
+00:18-00:32 | Top Tokens Overview + Map
 Voiceover:
-"On the left, we track top Solana tokens with live market context and risk indicators."
+"On the left, we track top Solana tokens with live market context and risk indicators, and we visualize market structure with a Liquidity vs Holder Concentration map."
 Screen:
 - Slowly move through Top Tokens table.
 - Hover 2-3 rows to show row highlight behavior.
+- Scroll to the insights section and open the Liquidity vs Holder Concentration map.
+- Hover a few points on the map.
 
-00:30-00:46 | Instant Token Analysis
+00:32-00:46 | Instant Token Analysis
 Voiceover:
 "You can analyze by token name or mint address. TrustLayer returns an explainable risk score with confidence."
 Screen:

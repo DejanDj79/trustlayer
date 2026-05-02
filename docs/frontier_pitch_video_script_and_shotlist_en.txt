@@ -43,11 +43,12 @@ Voiceover:
 Screen:
 - Return to Top Tokens list and quickly switch between 2-3 tokens.
 - Show Market Pulse / leaderboard / insights area below table.
+- Open the Liquidity vs Holder Concentration map and hover a few points.
 - Briefly highlight auto-refresh text.
 
 01:33-01:53 | Tech + Differentiation
 Voiceover:
-"TrustLayer integrates Solana RPC plus market data sources, with fallback handling and transparent diagnostics. Our edge is explainability, usability, and live monitoring in one workflow."
+"TrustLayer integrates Solana RPC plus market data sources, with fallback handling and transparent diagnostics. Our edge is explainability, usability, and live monitoring in one workflow, including visual risk mapping with Liquidity vs Holder Concentration."
 Screen:
 - In right panel, scroll to RPC diagnostics / warnings.
 - Show history chart area and risk breakdown blocks.
