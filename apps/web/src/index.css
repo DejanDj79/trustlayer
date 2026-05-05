@@ -52,4 +52,8 @@
   .font-display {
     font-family: "Montserrat", "Beiruti", "Segoe UI", sans-serif;
   }
+
+  .tl-circle {
+    border-radius: 9999px !important;
+  }
 }

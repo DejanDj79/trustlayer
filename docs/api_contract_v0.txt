@@ -369,6 +369,7 @@ Response 200:
       "priceUsd": 180.52,
       "marketCapUsd": 82000000000,
       "change24hPct": 2.14,
+      "sparkline7d": [178.1, 178.9, 179.3, 180.1, 180.5],
       "imageUrl": "https://.../sol.png"
     }
   ],

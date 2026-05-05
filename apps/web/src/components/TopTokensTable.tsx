@@ -8,6 +8,12 @@ import {
   riskBandFromScore,
   shortMint
 } from "../lib/format";
+import {
+  NARRATIVE_FILTERS,
+  narrativeTagForToken,
+  narrativeToneClass,
+  type NarrativeFilter
+} from "../lib/narrative";
 import type { TopToken, TokenRiskState } from "../types";
 
 interface TopTokensTableProps {
@@ -18,7 +24,13 @@ interface TopTokensTableProps {
   source: string;
   fallbackMode: boolean;
   errorMessage: string | null;
+  generatedAt: string | null;
+  cacheAgeMs: number | null;
+  cacheTtlMs: number | null;
   selectedMint: string | null;
+  activeNarrativeFilter: NarrativeFilter;
+  onNarrativeFilterChange: (value: NarrativeFilter) => void;
+  onRefreshNow: () => void;
   onAnalyzeToken: (mint: string) => void;
   watchlistMints: Set<string>;
   onToggleWatchlist: (token: TopToken) => void;
@@ -88,6 +100,44 @@ function RiskBadge({ risk }: { risk: TokenRiskState | undefined }) {
   return <span className={`text-sm font-semibold ${colorClass}`}>{scoreText}</span>;
 }
 
+function coinGeckoUrlForToken(token: TopToken): string {
+  const coinId = String(token.coingeckoId || "").trim();
+  if (coinId) {
+    return `https://www.coingecko.com/en/coins/${encodeURIComponent(coinId)}`;
+  }
+  const fallbackQuery = String(token.mint || token.symbol || token.name || "").trim();
+  return `https://www.coingecko.com/en/search?query=${encodeURIComponent(fallbackQuery)}`;
+}
+
+function formatRelativeCacheAge(ageMs: number | null | undefined): string {
+  const numeric = Number(ageMs);
+  if (!Number.isFinite(numeric) || numeric < 0) {
+    return "n/a";
+  }
+  const seconds = Math.round(numeric / 1000);
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+  const minutes = Math.round(seconds / 60);
+  return `${minutes}m`;
+}
+
+function formatSyncTime(value: string | null | undefined): string {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "n/a";
+  }
+  const parsed = new Date(raw);
+  if (!Number.isFinite(parsed.getTime())) {
+    return "n/a";
+  }
+  return parsed.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+}
+
 export function TopTokensTable(props: TopTokensTableProps) {
   const {
     tokens,
@@ -97,35 +147,67 @@ export function TopTokensTable(props: TopTokensTableProps) {
     source,
     fallbackMode,
     errorMessage,
+    generatedAt,
+    cacheAgeMs,
+    cacheTtlMs,
     selectedMint,
+    activeNarrativeFilter,
+    onNarrativeFilterChange,
+    onRefreshNow,
     onAnalyzeToken,
     watchlistMints,
     onToggleWatchlist
   } = props;
   const [visibleRowCount, setVisibleRowCount] = useState(0);
-  const tokenListKey = useMemo(() => tokens.map((token) => token.mint).join("|"), [tokens]);
+
+  const taggedTokens = useMemo(
+    () => tokens.map((token) => ({ token, narrativeTag: narrativeTagForToken(token) })),
+    [tokens]
+  );
+
+  const narrativeCounts = useMemo(() => {
+    const counts = new Map<NarrativeFilter, number>();
+    counts.set("all", tokens.length);
+    for (const taggedToken of taggedTokens) {
+      const key = taggedToken.narrativeTag.tone as NarrativeFilter;
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+    return counts;
+  }, [tokens.length, taggedTokens]);
+
+  const filteredTaggedTokens = useMemo(() => {
+    if (activeNarrativeFilter === "all") {
+      return taggedTokens;
+    }
+    return taggedTokens.filter((item) => item.narrativeTag.tone === activeNarrativeFilter);
+  }, [activeNarrativeFilter, taggedTokens]);
+
+  const tokenListKey = useMemo(
+    () => filteredTaggedTokens.map((item) => item.token.mint).join("|"),
+    [filteredTaggedTokens]
+  );
 
   useEffect(() => {
-    if (showInitialSkeleton || tokens.length === 0) {
+    if (showInitialSkeleton || filteredTaggedTokens.length === 0) {
       setVisibleRowCount(0);
       return;
     }
     setVisibleRowCount(1);
-    if (tokens.length === 1) {
+    if (filteredTaggedTokens.length === 1) {
       return;
     }
     let current = 1;
     const intervalId = window.setInterval(() => {
       current += 1;
-      setVisibleRowCount((prev) => Math.max(prev, Math.min(tokens.length, current)));
-      if (current >= tokens.length) {
+      setVisibleRowCount((prev) => Math.max(prev, Math.min(filteredTaggedTokens.length, current)));
+      if (current >= filteredTaggedTokens.length) {
         window.clearInterval(intervalId);
       }
     }, 45);
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [showInitialSkeleton, tokenListKey, tokens.length]);
+  }, [showInitialSkeleton, tokenListKey, filteredTaggedTokens.length]);
 
   return (
     <section className="-mx-4 bg-transparent py-4">
@@ -140,6 +222,16 @@ export function TopTokensTable(props: TopTokensTableProps) {
             Source: {source || "unknown"}
             {fallbackMode ? " (fallback mode)" : ""}
           </p>
+          <div className="mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={onRefreshNow}
+              disabled={isLoading}
+              className="border border-tl-border bg-black px-2 py-1 text-[11px] text-zinc-300 transition-colors duration-150 hover:bg-[#101010] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Sync now
+            </button>
+          </div>
           {isLoading ? (
             <p className="mt-1 inline-flex items-center gap-2 text-sm text-tl-muted">
               <LoadingSpinner />
@@ -149,7 +241,9 @@ export function TopTokensTable(props: TopTokensTableProps) {
             <p className="mt-1 text-xs text-tl-muted">Auto-refresh every 5 minutes</p>
           )}
           <p className="mt-1 text-xs text-tl-muted">
-            Legend: <span className="text-green-300">Green</span> low risk · <span className="text-amber-300">Yellow</span> medium risk · <span className="text-red-500">Red</span> high risk
+            Last sync: {formatSyncTime(generatedAt)} · cache age: {formatRelativeCacheAge(cacheAgeMs)}
+            {" / "}
+            {formatRelativeCacheAge(cacheTtlMs)}
           </p>
         </div>
       </div>
@@ -158,15 +252,38 @@ export function TopTokensTable(props: TopTokensTableProps) {
         <p className="mx-4 mb-3 bg-red-950 px-3 py-2 text-xs text-red-500">{errorMessage}</p>
       ) : null}
 
+      <div className="mb-3 flex flex-wrap items-center gap-2 px-4">
+        <span className="text-xs uppercase tracking-[0.08em] text-zinc-500">Filter by tag</span>
+        {NARRATIVE_FILTERS.map((filterOption) => {
+          const isActive = activeNarrativeFilter === filterOption.value;
+          const count = narrativeCounts.get(filterOption.value) || 0;
+          return (
+            <button
+              key={filterOption.value}
+              type="button"
+              onClick={() => onNarrativeFilterChange(filterOption.value)}
+              className={`border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] transition-colors duration-150 ${
+                isActive
+                  ? "border-zinc-400 bg-zinc-900 text-zinc-100"
+                  : "border-tl-border bg-black text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              {filterOption.label} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       <div className="overflow-x-auto bg-black">
-        <table className="min-w-[980px] w-full border-collapse">
+        <table className="min-w-[1120px] w-full border-collapse">
           <thead className="border-y border-dashed border-tl-border">
             <tr className="bg-black text-left text-xs uppercase tracking-[0.06em] text-zinc-400">
               <th className="px-2 py-2">#</th>
               <th className="px-2 py-2">Token</th>
+              <th className="px-2 py-2">Narrative</th>
               <th className="px-2 py-2">Price</th>
-              <th className="px-2 py-2">24h</th>
-              <th className="px-2 py-2">Market Cap</th>
+              <th className="px-2 py-2">Price 24h</th>
+              <th className="px-2 py-2">MCap (Global)</th>
               <th className="px-2 py-2">Risk</th>
               <th className="px-2 py-2" />
             </tr>
@@ -188,6 +305,9 @@ export function TopTokensTable(props: TopTokensTableProps) {
                     </div>
                   </td>
                   <td className="px-2 py-2">
+                    <span className="block h-5 w-24 bg-[#1f1f1f]" />
+                  </td>
+                  <td className="px-2 py-2">
                     <span className="block h-4 w-16 bg-[#1f1f1f]" />
                   </td>
                   <td className="px-2 py-2">
@@ -207,16 +327,18 @@ export function TopTokensTable(props: TopTokensTableProps) {
                   </td>
                 </tr>
               ))
-            ) : tokens.length === 0 ? (
+            ) : filteredTaggedTokens.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-2 py-4 text-center text-sm text-tl-muted">
-                  No top token data available.
+                <td colSpan={8} className="px-2 py-4 text-center text-sm text-tl-muted">
+                  No tokens match selected narrative filter.
                 </td>
               </tr>
             ) : (
-              tokens.map((token, index) => {
+              filteredTaggedTokens.map((item, index) => {
+                const token = item.token;
                 const change = token.change24hPct;
                 const risk = risks[token.mint];
+                const narrativeTag = item.narrativeTag;
                 const isSelected = selectedMint === token.mint;
                 const inWatchlist = watchlistMints.has(token.mint);
                 const isVisible = index < visibleRowCount;
@@ -241,8 +363,26 @@ export function TopTokensTable(props: TopTokensTableProps) {
                           <p className="truncate text-xs text-tl-muted">
                             {token.symbol || "N/A"} · {shortMint(token.mint)}
                           </p>
+                          <p className="truncate text-xs">
+                            <a
+                              href={coinGeckoUrlForToken(token)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(event) => event.stopPropagation()}
+                              className="text-sky-300 hover:underline"
+                            >
+                              Open on CoinGecko
+                            </a>
+                          </p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <span
+                        className={"inline-flex border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] " + narrativeToneClass(narrativeTag.tone)}
+                      >
+                        {narrativeTag.label}
+                      </span>
                     </td>
                     <td className="px-2 py-2">{formatPrice(token.priceUsd)}</td>
                     <td
